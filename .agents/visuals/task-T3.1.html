@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wonderland — T3.1 Verify Phase</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #0d0d0d; --surface: #161616; --border: #2a2a2a; --text: #e8e8e8;
+      --muted: #666; --accent: #00ff88; --warn: #ffaa00;
+      --font-mono: 'JetBrains Mono','Fira Code','Cascadia Code',monospace;
+      --font-sans: 'Inter', system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 14px; line-height: 1.6; padding: 2rem; max-width: 1200px; margin: 0 auto; }
+    header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; display: flex; align-items: baseline; gap: 1rem; }
+    header h1 { font-family: var(--font-mono); font-size: 1.1rem; color: var(--accent); }
+    header .meta { color: var(--muted); font-family: var(--font-mono); font-size: 0.75rem; }
+    section { margin-bottom: 2.5rem; }
+    h2 { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+    .diagram-container { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 2rem; overflow-x: auto; }
+    .mermaid { display: flex; justify-content: center; }
+    ul { list-style: none; font-family: var(--font-mono); font-size: 0.8rem; }
+    li { padding: 0.4rem 0; border-bottom: 1px solid var(--border); }
+    li::before { content: '→ '; color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>T3.1 — Verify Phase &amp; verified-solution Exit</h1>
+    <span class="meta">2026-06-03 · task-complete · M3</span>
+  </header>
+
+  <section>
+    <h2>api-negotiation-verified Phases</h2>
+    <div class="diagram-container">
+      <div class="mermaid">
+stateDiagram-v2
+  [*] --> frame
+  frame --> propose: advance
+  propose --> implement: advance + consensus
+  implement --> verify: advance
+  verify --> ratify: advance + all verified
+  ratify --> closed: declare(verified)
+  closed --> [*]
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Rules</h2>
+    <ul>
+      <li>The shared test artifact rides on the contract body (<code>verification</code>) — agreed when the contract is signed.</li>
+      <li>Each contractor calls <code>submit_verification(version, passed)</code> during the verify phase.</li>
+      <li>Leaving verify is gated on <strong>every</strong> contractor passing — otherwise advance returns { blocked: 'verification', missing }.</li>
+      <li><code>declare('verified')</code> re-checks signatures + an agreed artifact + all passes.</li>
+    </ul>
+  </section>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'dark', themeVariables: { lineColor: '#00ff88', mainBkg: '#161616', primaryTextColor: '#e8e8e8', primaryBorderColor: '#2a2a2a' } });
+  </script>
+</body>
+</html>

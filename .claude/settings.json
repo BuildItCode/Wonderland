@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(read:*)",
+      "Bash(write:.agents/**)",
+      "Bash(write:src/**)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(python:*)",
+      "Bash(pip:*)"
+    ]
+  }
+}

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wonderland — T2.2 Failure Doc</title>
+  <style>
+    :root {
+      --bg: #0d0d0d; --surface: #161616; --border: #2a2a2a; --text: #e8e8e8;
+      --muted: #666; --error: #ff4444; --warn: #ffaa00;
+      --font-mono: 'JetBrains Mono','Fira Code','Cascadia Code',monospace;
+      --font-sans: 'Inter', system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 14px; line-height: 1.6; padding: 2rem; max-width: 900px; margin: 0 auto; }
+    header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; display: flex; align-items: baseline; gap: 1rem; }
+    header h1 { font-family: var(--font-mono); font-size: 1.1rem; color: var(--error); }
+    header .meta { color: var(--muted); font-family: var(--font-mono); font-size: 0.75rem; }
+    h2 { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem; }
+    .doc { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--error); border-radius: 6px; padding: 1.5rem; white-space: pre-wrap; font-family: var(--font-mono); font-size: 0.82rem; }
+    .caption { color: var(--muted); font-size: 0.78rem; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>T2.2 — Failure Document (unsolvable)</h1>
+    <span class="meta">2026-06-03 · task-complete · M2</span>
+  </header>
+  <h2>declare('unsolvable') / round-cap auto-close output</h2>
+  <div class="doc"># integrate payments — unsolvable
+
+## Summary
+Webhook delivery semantics could not be reconciled with checkout's lookup timing.
+
+## Decisions Reached
+Last contract under negotiation: v3 "Charges API" — signed by 1/2 contractors.
+
+## Blocking Issues
+- webhook fires before the charge is durably committed
+- cannot expose webhook externally without a new auth boundary
+
+## Recommended Human Action
+- Review the blocking issues above.
+- Decide whether to amend the contract, relax a constraint, or escalate to the teams directly.</div>
+  <p class="caption">The failure doc is the same living summary, frozen — plus decisions reached, blocking issues mined from <code>failure</code> messages in the transcript, and explicit human next-actions. Produced on both explicit <code>declare('unsolvable')</code> and automatic round-cap close, then persisted and retrievable via <code>read_doc</code>.</p>
+</body>
+</html>

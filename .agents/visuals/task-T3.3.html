@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wonderland — T3.3 Template Comparison</title>
+  <style>
+    :root {
+      --bg: #0d0d0d; --surface: #161616; --border: #2a2a2a; --text: #e8e8e8;
+      --muted: #666; --accent: #00ff88;
+      --font-mono: 'JetBrains Mono','Fira Code','Cascadia Code',monospace;
+      --font-sans: 'Inter', system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 14px; line-height: 1.6; padding: 2rem; max-width: 1100px; margin: 0 auto; }
+    header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; display: flex; align-items: baseline; gap: 1rem; }
+    header h1 { font-family: var(--font-mono); font-size: 1.1rem; color: var(--accent); }
+    header .meta { color: var(--muted); font-family: var(--font-mono); font-size: 0.75rem; }
+    table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.8rem; }
+    th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); text-transform: uppercase; font-size: 0.68rem; letter-spacing: 0.05em; }
+    td.name { color: var(--accent); }
+    caption { text-align: left; color: var(--muted); font-size: 0.78rem; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>T3.3 — Template Registry &amp; Comparison</h1>
+    <span class="meta">2026-06-03 · task-complete · M3</span>
+  </header>
+  <table>
+    <caption>Templates are data-driven (phases / exit / round cap / allowed acts) and selected at create_room.</caption>
+    <thead>
+      <tr><th>Template</th><th>Phases</th><th>Exit</th><th>Round cap</th><th>Notable</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="name">api-negotiation</td>
+        <td>frame → propose → implement → ratify</td>
+        <td>ratified-contract</td>
+        <td>8</td>
+        <td>Flagship; agree + build + ratify.</td>
+      </tr>
+      <tr>
+        <td class="name">api-negotiation-verified</td>
+        <td>frame → propose → implement → verify → ratify</td>
+        <td>verified-solution</td>
+        <td>8</td>
+        <td>Adds a verify gate; needs an agreed test artifact.</td>
+      </tr>
+      <tr>
+        <td class="name">cross-team-debug</td>
+        <td>frame → propose → ratify</td>
+        <td>ratified-contract</td>
+        <td>4</td>
+        <td>No implement phase; failures allowed in frame; converges fast.</td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wonderland — T1.5 Room Lifecycle</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #0d0d0d; --surface: #161616; --border: #2a2a2a; --text: #e8e8e8;
+      --muted: #666; --accent: #00ff88; --success: #22c55e;
+      --font-mono: 'JetBrains Mono','Fira Code','Cascadia Code',monospace;
+      --font-sans: 'Inter', system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 14px; line-height: 1.6; padding: 2rem; max-width: 1200px; margin: 0 auto; }
+    header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; display: flex; align-items: baseline; gap: 1rem; }
+    header h1 { font-family: var(--font-mono); font-size: 1.1rem; color: var(--accent); }
+    header .meta { color: var(--muted); font-family: var(--font-mono); font-size: 0.75rem; }
+    section { margin-bottom: 2.5rem; }
+    h2 { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+    .diagram-container { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 2rem; overflow-x: auto; }
+    .mermaid { display: flex; justify-content: center; }
+    table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.8rem; }
+    th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; }
+    td.tool { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>T1.5 — Room Lifecycle &amp; Identity</h1>
+    <span class="meta">2026-06-03 · task-complete · M1</span>
+  </header>
+
+  <section>
+    <h2>Lifecycle Flow</h2>
+    <div class="diagram-container">
+      <div class="mermaid">
+sequenceDiagram
+  participant Conv as Convener
+  participant Hub as HubEngine
+  participant A as Contractor A
+  Conv->>Hub: create_room(task, api-negotiation, parties)
+  Hub-->>Conv: roomId, url, role-links (1 per party)
+  A->>Hub: resolve_link(token)
+  Hub-->>A: briefing — read-only, status stays "invited"
+  A->>Hub: join(token)
+  Hub-->>A: participantId (stable), phase, summary
+  A->>Hub: join(token) again
+  Hub-->>A: same participantId
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Tools Shipped</h2>
+    <table>
+      <thead><tr><th>Tool</th><th>Input</th><th>Output</th></tr></thead>
+      <tbody>
+        <tr><td class="tool">create_room</td><td>task, templateId, parties[]</td><td>roomId, url, links[]</td></tr>
+        <tr><td class="tool">resolve_link</td><td>token</td><td>Briefing (read-only)</td></tr>
+        <tr><td class="tool">join</td><td>token</td><td>participantId, phase, summary</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Module Status</h2>
+    <div class="diagram-container">
+      <div class="mermaid">
+graph LR
+  D["domain"]:::done
+  ST["store"]:::done
+  TPL["templates"]:::done
+  T["transport"]:::done
+  E["engine: lifecycle done; messaging / phase / summary pending"]:::wip
+  D --- E
+  T --> E --> ST
+  E --> TPL
+  classDef done fill:#22c55e,color:#fff,stroke:#22c55e;
+  classDef wip fill:#161616,color:#e8e8e8,stroke:#ffaa00;
+      </div>
+    </div>
+  </section>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'dark', themeVariables: { lineColor: '#00ff88', mainBkg: '#161616', primaryTextColor: '#e8e8e8', primaryBorderColor: '#2a2a2a' } });
+  </script>
+</body>
+</html>

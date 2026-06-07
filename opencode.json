@@ -1,0 +1,13 @@
+{
+  "provider": "openai",
+  "model": "gpt-4o",
+  "instructions": [
+    ".agents/skills/SKILL.md",
+    ".agents/skills/plan/SKILL.md",
+    ".agents/skills/build/SKILL.md",
+    ".agents/skills/validate/SKILL.md",
+    ".agents/skills/visualize/SKILL.md",
+    ".agents/skills/quality/SKILL.md"
+  ],
+  "context": { "contracts": ".agents/contracts" }
+}

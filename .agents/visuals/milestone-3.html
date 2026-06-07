@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wonderland — M3 Summary</title>
+  <style>
+    :root {
+      --bg: #0d0d0d; --surface: #161616; --border: #2a2a2a; --text: #e8e8e8;
+      --muted: #666; --accent: #00ff88; --success: #22c55e;
+      --font-mono: 'JetBrains Mono','Fira Code','Cascadia Code',monospace;
+      --font-sans: 'Inter', system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 14px; line-height: 1.6; padding: 2rem; max-width: 1200px; margin: 0 auto; }
+    header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; display: flex; align-items: baseline; gap: 1rem; }
+    header h1 { font-family: var(--font-mono); font-size: 1.1rem; color: var(--accent); }
+    header .meta { color: var(--muted); font-family: var(--font-mono); font-size: 0.75rem; }
+    section { margin-bottom: 2.5rem; }
+    h2 { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+    .task-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+    .task-card { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--success); border-radius: 6px; padding: 1rem; }
+    .task-title { font-family: var(--font-mono); font-size: 0.85rem; margin-bottom: 0.35rem; }
+    .badge { display: inline-block; font-family: var(--font-mono); font-size: 0.65rem; padding: 0.1rem 0.4rem; border-radius: 3px; text-transform: uppercase; background: #052e1620; color: var(--success); border: 1px solid var(--success); }
+    .criteria-list { list-style: none; }
+    .criteria-list li { padding: 0.4rem 0; border-bottom: 1px solid var(--border); font-family: var(--font-mono); font-size: 0.8rem; }
+    .criteria-list li:last-child { border-bottom: none; }
+    .check { color: var(--success); }
+    .stats-row { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+    .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1.25rem; }
+    .stat-value { font-family: var(--font-mono); font-size: 1.5rem; color: var(--accent); }
+    .stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.25rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Milestone 3 — Verification &amp; Protocols-as-Product</h1>
+    <span class="meta">2026-06-03 · milestone-summary</span>
+  </header>
+
+  <section>
+    <h2>Stats</h2>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-value">16 / 16</div><div class="stat-label">Tasks (all)</div></div>
+      <div class="stat"><div class="stat-value">88</div><div class="stat-label">Tests passing</div></div>
+      <div class="stat"><div class="stat-value">13</div><div class="stat-label">MCP tools</div></div>
+      <div class="stat"><div class="stat-value">3</div><div class="stat-label">Templates</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>M3 Tasks</h2>
+    <div class="task-grid">
+      <div class="task-card"><div class="task-title">T3.1 Verify phase + verified-solution</div><span class="badge">done</span></div>
+      <div class="task-card"><div class="task-title">T3.2 Consumer-driven contracts</div><span class="badge">done</span></div>
+      <div class="task-card"><div class="task-title">T3.3 Template registry + 2nd template</div><span class="badge">done</span></div>
+      <div class="task-card"><div class="task-title">T3.4 Multi-template integration suite</div><span class="badge">done</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Acceptance Criteria — all met</h2>
+    <ul class="criteria-list">
+      <li><span class="check">✓</span> AC1–AC9, AC12 — carried from M1/M2, still green</li>
+      <li><span class="check">✓</span> AC10 — verify phase: agreed test artifact + every contractor passes before ratify</li>
+      <li><span class="check">✓</span> AC11 — three templates, each enforcing its own phases/exit/round-cap/acts</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Links</h2>
+    <ul class="criteria-list">
+      <li><a href="task-T3.1.html" style="color:var(--accent)">Verify phase</a></li>
+      <li><a href="task-T3.3.html" style="color:var(--accent)">Template comparison</a></li>
+      <li><a href="task-T3.4.html" style="color:var(--accent)">Final architecture</a></li>
+      <li><a href="completion.html" style="color:var(--accent)">Project completion summary</a></li>
+    </ul>
+  </section>
+</body>
+</html>

@@ -1,0 +1,36 @@
+# .codex/config.toml — Codex project configuration
+# Docs: https://developers.openai.com/codex/config-reference
+#
+# Skills and contracts live in .agents/ — shared across all agents.
+
+[sandbox]
+sandbox_mode = "workspace-write"
+allow_net_in_sandbox = false
+
+[shell]
+login = false
+
+# Skill registrations pointing to shared .agents/skills/
+[[skills.config]]
+path = ".agents/skills/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = ".agents/skills/plan/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = ".agents/skills/build/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = ".agents/skills/validate/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = ".agents/skills/visualize/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = ".agents/skills/quality/SKILL.md"
+enabled = true

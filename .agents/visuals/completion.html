@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wonderland — Completion Summary</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #0d0d0d; --surface: #161616; --border: #2a2a2a; --text: #e8e8e8;
+      --muted: #666; --accent: #00ff88; --success: #22c55e;
+      --font-mono: 'JetBrains Mono','Fira Code','Cascadia Code',monospace;
+      --font-sans: 'Inter', system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 14px; line-height: 1.6; padding: 2rem; max-width: 1200px; margin: 0 auto; }
+    header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; display: flex; align-items: baseline; gap: 1rem; }
+    header h1 { font-family: var(--font-mono); font-size: 1.1rem; color: var(--accent); }
+    header .meta { color: var(--muted); font-family: var(--font-mono); font-size: 0.75rem; }
+    section { margin-bottom: 2.5rem; }
+    h2 { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+    .diagram-container { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 2rem; overflow-x: auto; }
+    .mermaid { display: flex; justify-content: center; }
+    .stats-row { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+    .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1.25rem; }
+    .stat-value { font-family: var(--font-mono); font-size: 1.5rem; color: var(--accent); }
+    .stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.25rem; }
+    .criteria-list { list-style: none; }
+    .criteria-list li { padding: 0.35rem 0; border-bottom: 1px solid var(--border); font-family: var(--font-mono); font-size: 0.78rem; }
+    .criteria-list li:last-child { border-bottom: none; }
+    .check { color: var(--success); }
+    .decision-timeline { border-left: 1px solid var(--border); padding-left: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+    .decision-entry { position: relative; }
+    .decision-entry::before { content: ''; position: absolute; left: -1.6rem; top: 0.45rem; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+    .decision-date { font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted); }
+    .decision-title { font-family: var(--font-mono); font-size: 0.85rem; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Wonderland — Completion Summary</h1>
+    <span class="meta">2026-06-03 · completion-summary</span>
+  </header>
+
+  <section>
+    <h2>Result</h2>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-value">3 / 3</div><div class="stat-label">Milestones</div></div>
+      <div class="stat"><div class="stat-value">16 / 16</div><div class="stat-label">Tasks</div></div>
+      <div class="stat"><div class="stat-value">88</div><div class="stat-label">Tests passing</div></div>
+      <div class="stat"><div class="stat-value">0</div><div class="stat-label">Violations / CVEs</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Milestones</h2>
+    <ul class="criteria-list">
+      <li><span class="check">✓</span> M1 — Negotiation Skeleton (T1.1–T1.8) · <a href="milestone-1.html">summary</a></li>
+      <li><span class="check">✓</span> M2 — Async Robustness (T2.1–T2.4) · <a href="milestone-2.html">summary</a></li>
+      <li><span class="check">✓</span> M3 — Verification &amp; Protocols (T3.1–T3.4) · <a href="milestone-3.html">summary</a></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Architecture</h2>
+    <div class="diagram-container">
+      <div class="mermaid">
+graph LR
+  IDX["index"]:::done --> T["transport (13 tools)"]:::done --> E["engine"]:::done
+  E --> ST["store (node:sqlite)"]:::done
+  E --> TPL["templates (3)"]:::done
+  D["domain"]:::done --- E
+  classDef done fill:#22c55e,color:#fff,stroke:#22c55e;
+      </div>
+    </div>
+    <p style="color:var(--muted);font-size:0.78rem;margin-top:0.75rem">Full diagram: <a href="task-T3.4.html">final architecture</a>.</p>
+  </section>
+
+  <section>
+    <h2>Acceptance Criteria (12 / 12)</h2>
+    <ul class="criteria-list">
+      <li><span class="check">✓</span> AC1 create_room · AC2 read-only briefing · AC3 stable identity</li>
+      <li><span class="check">✓</span> AC4 phase-gated acts · AC5 consensus gate · AC6 summary + my_state</li>
+      <li><span class="check">✓</span> AC7 full run → doc · AC8 regression + round cap → unsolvable</li>
+      <li><span class="check">✓</span> AC9 resume across reconnect + restart · AC10 verification gate</li>
+      <li><span class="check">✓</span> AC11 multiple templates · AC12 close invalidates links + emits doc</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Decision Timeline</h2>
+    <div class="decision-timeline">
+      <div class="decision-entry"><div class="decision-date">2026-06-03</div><div class="decision-title">Plan approved — model-less MCP hub, 3 milestones</div></div>
+      <div class="decision-entry"><div class="decision-date">2026-06-03</div><div class="decision-title">Dev toolchain: typescript-eslint added</div></div>
+      <div class="decision-entry"><div class="decision-date">2026-06-03</div><div class="decision-title">Persistence: better-sqlite3 → built-in node:sqlite (Node 26)</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Lessons Learned (ANTIPATTERNS)</h2>
+    <p style="color:var(--muted);font-size:0.8rem">No anti-patterns recorded — zero contract violations across the build. Two contract clarifications were handled through the plan/decisions log, not violations.</p>
+  </section>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'dark', themeVariables: { lineColor: '#00ff88', mainBkg: '#161616', primaryTextColor: '#e8e8e8', primaryBorderColor: '#2a2a2a' } });
+  </script>
+</body>
+</html>

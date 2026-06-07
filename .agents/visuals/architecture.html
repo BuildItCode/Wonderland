@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wonderland — Architecture</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --surface: #161616;
+      --border: #2a2a2a;
+      --text: #e8e8e8;
+      --muted: #666;
+      --accent: #00ff88;
+      --warn: #ffaa00;
+      --error: #ff4444;
+      --success: #22c55e;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      --font-sans: 'Inter', system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.6;
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+    }
+
+    header h1 {
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+    }
+
+    header .meta {
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+
+    section { margin-bottom: 2.5rem; }
+
+    h2 {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .diagram-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2rem;
+      overflow-x: auto;
+    }
+
+    .mermaid { display: flex; justify-content: center; }
+
+    .legend {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Wonderland — Agent Collaboration Hub</h1>
+    <span class="meta">2026-06-03 · architecture</span>
+  </header>
+
+  <section>
+    <h2>System Diagram</h2>
+    <div class="diagram-container">
+      <div class="mermaid">
+graph TD
+  Conv["Convener agent/human"]
+  Fac["Facilitator agent (MCP client)"]
+  CA["Contractor A (MCP client)"]
+  CB["Contractor B (MCP client)"]
+
+  Hub["Wonderland Hub — MCP server (Streamable HTTP)"]
+  Eng["Room Engine: phase machine + consensus gate"]
+  Store["SQLite store"]
+
+  Conv -->|create_room| Hub
+  Fac -->|advance / summary / declare| Hub
+  CA -->|join / post / status| Hub
+  CB -->|join / post / status| Hub
+  Hub --> Eng --> Store
+      </div>
+    </div>
+    <p class="legend">Model-less hub. All agents (convener, facilitator, contractors) are external MCP clients.</p>
+  </section>
+
+  <section>
+    <h2>Component Map</h2>
+    <div class="diagram-container">
+      <div class="mermaid">
+graph LR
+  T["transport: MCP server + HTTP routing"] --> E["engine: phase machine, consensus gate, negotiation rules"]
+  E --> ST["store: SQLite repositories"]
+  E --> SUM["summary + doc"]
+  E --> TPL["templates: registry + phase/exit config"]
+  E --> VER["verification: shared test + pass signals"]
+  D["domain: types + zod schemas"] --- T
+  D --- E
+  D --- ST
+      </div>
+    </div>
+    <p class="legend">Dependency direction: domain ← store ← engine ← transport. Engine never imports transport.</p>
+  </section>
+
+  <section>
+    <h2>Data Flow — api-negotiation (happy path)</h2>
+    <div class="diagram-container">
+      <div class="mermaid">
+sequenceDiagram
+  participant Conv as Convener
+  participant Hub as Hub
+  participant Fac as Facilitator
+  participant A as Contractor A
+  participant B as Contractor B
+
+  Conv->>Hub: create_room(task, template, parties)
+  Hub-->>Conv: roomId, url, role-links
+  A->>Hub: resolve_link (briefing, read-only)
+  A->>Hub: join (binds stable id)
+  B->>Hub: join
+  Note over A,B: frame — post inform (capability manifest)
+  Fac->>Hub: update_summary (gap named)
+  A->>Hub: propose (contract v1)
+  B->>Hub: reject + counter
+  A->>Hub: propose (contract v2)
+  A->>Hub: accept(v2)
+  B->>Hub: accept(v2)
+  Fac->>Hub: advance_phase (gate: all signed v2)
+  Note over A,B: implement — status=implementing, post inform(results)
+  Fac->>Hub: advance_phase to ratify
+  Fac->>Hub: declare(ratified) — doc, invalidate links
+      </div>
+    </div>
+    <p class="legend">Consensus gate: facilitator can advance only once every contractor has signed the current contract version.</p>
+  </section>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#1a1a2e',
+        primaryTextColor: '#e8e8e8',
+        primaryBorderColor: '#2a2a2a',
+        lineColor: '#00ff88',
+        secondaryColor: '#161616',
+        tertiaryColor: '#0d0d0d',
+        background: '#0d0d0d',
+        mainBkg: '#161616',
+        nodeBorder: '#2a2a2a',
+        clusterBkg: '#161616',
+        titleColor: '#e8e8e8',
+        edgeLabelBackground: '#161616',
+      }
+    });
+  </script>
+</body>
+</html>

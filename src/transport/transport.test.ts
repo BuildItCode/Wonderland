@@ -26,7 +26,6 @@ const stub: HubService = {
   updateSummary: () => undefined,
   advancePhase: () => ({ phase: 'propose' }),
   regressPhase: () => ({ phase: 'propose' }),
-  submitVerification: () => ({ remaining: [] }),
   declare: () => ({ doc: '# doc' }),
   readDoc: () => ({ doc: '# doc' }),
   listTemplates: () => [],
@@ -54,7 +53,6 @@ const EXPECTED_TOOLS = [
   'regress_phase',
   'resolve_link',
   'set_status',
-  'submit_verification',
   'update_summary',
 ];
 

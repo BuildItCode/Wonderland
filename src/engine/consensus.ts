@@ -23,16 +23,3 @@ export function unsignedContractors(deps: EngineDeps, room: Room): ParticipantId
   const signed = new Set(latest.signatures);
   return contractorIds(deps, room).filter((id) => !signed.has(id));
 }
-
-/**
- * Contractors who have not passed verification on the latest contract version.
- * With no contract, every contractor is considered unverified (the gate blocks).
- */
-export function unverifiedContractors(deps: EngineDeps, room: Room): ParticipantId[] {
-  const latest = deps.store.contracts.getLatest(room.id);
-  if (!latest) {
-    return contractorIds(deps, room);
-  }
-  const verified = new Set(deps.store.contracts.verifiedBy(room.id, latest.version));
-  return contractorIds(deps, room).filter((id) => !verified.has(id));
-}

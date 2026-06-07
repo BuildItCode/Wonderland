@@ -203,7 +203,7 @@
         '<tr><th>phase</th><td><strong style="color:var(--accent)">' + s.phase + '</strong> <span class="tag">round ' + s.round + '</span> ' + (s.outcome ? '<span class="tag">' + s.outcome + '</span>' : '') + '</td></tr>' +
         '<tr><th>task</th><td>' + escapeHtml(s.task) + '</td></tr>' +
         '<tr><th>summary</th><td>' + (s.summary ? escapeHtml(s.summary) : '<span class="muted">—</span>') + '</td></tr>' +
-        '<tr><th>contract</th><td>' + (c ? ('v' + c.version + ' by ' + c.proposedBy + '<br/>signed: [' + c.signatures.join(', ') + ']<br/>verified: [' + c.verifiedBy.join(', ') + ']') : '<span class="muted">none yet</span>') + '</td></tr>' +
+        '<tr><th>contract</th><td>' + (c ? ('v' + c.version + ' by ' + c.proposedBy + '<br/>signed: [' + c.signatures.join(', ') + ']') : '<span class="muted">none yet</span>') + '</td></tr>' +
         '</table>' +
         '<table style="margin-top:0.5rem"><tr><th>team</th><th>role</th><th>status</th></tr>' +
         s.participants.map((pp) => '<tr><td>' + escapeHtml(pp.team) + '</td><td>' + pp.role + '</td><td>' + pp.status + '</td></tr>').join('') +

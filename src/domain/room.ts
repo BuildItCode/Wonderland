@@ -4,7 +4,7 @@ import { phaseSchema, presenceSchema, roleSchema, outcomeSchema } from './enums.
 import { messageSchema } from './speech-acts.js';
 
 /** Exit criterion a template enforces before a room may close successfully. */
-export const exitCriterionSchema = z.enum(['ratified-contract', 'verified-solution']);
+export const exitCriterionSchema = z.enum(['ratified-contract']);
 
 /** Union of the valid exit criteria. */
 export type ExitCriterion = z.infer<typeof exitCriterionSchema>;

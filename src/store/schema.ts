@@ -52,11 +52,4 @@ CREATE TABLE IF NOT EXISTS signatures (
   participant_id TEXT NOT NULL,
   PRIMARY KEY (room_id, version, participant_id)
 );
-
-CREATE TABLE IF NOT EXISTS verifications (
-  room_id        TEXT NOT NULL,
-  version        INTEGER NOT NULL,
-  participant_id TEXT NOT NULL,
-  PRIMARY KEY (room_id, version, participant_id)
-);
 `;

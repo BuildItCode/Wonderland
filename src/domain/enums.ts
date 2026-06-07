@@ -20,7 +20,7 @@ export const phaseSchema = z.enum(['frame', 'propose', 'implement', 'verify', 'r
 export type Phase = z.infer<typeof phaseSchema>;
 
 /** Terminal outcome recorded when a room closes. */
-export const outcomeSchema = z.enum(['ratified', 'verified', 'unsolvable']);
+export const outcomeSchema = z.enum(['ratified', 'unsolvable']);
 
 /** Union of the valid terminal outcomes. */
 export type Outcome = z.infer<typeof outcomeSchema>;

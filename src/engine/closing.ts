@@ -8,7 +8,7 @@ import {
 } from '../domain/index.js';
 import type { EngineDeps } from './deps.js';
 import { requireParticipant, requireRoom } from './guards.js';
-import { unsignedContractors, unverifiedContractors } from './consensus.js';
+import { unsignedContractors } from './consensus.js';
 import { buildDoc } from './doc.js';
 
 /** Replace the living room summary (facilitator only). */
@@ -40,11 +40,8 @@ export function declare(deps: EngineDeps, token: string, outcome: Outcome): Decl
   if (room.phase === 'closed') {
     throw new ConflictError('Room is already closed.');
   }
-  if (outcome === 'ratified' || outcome === 'verified') {
+  if (outcome === 'ratified') {
     assertConsensus(deps, room, outcome);
-  }
-  if (outcome === 'verified') {
-    assertVerified(deps, room);
   }
   const doc = buildDoc(deps, room, outcome);
   deps.store.rooms.setDoc(room.id, doc);
@@ -74,13 +71,3 @@ function assertConsensus(deps: EngineDeps, room: Room, outcome: Outcome): void {
   }
 }
 
-function assertVerified(deps: EngineDeps, room: Room): void {
-  const contract = deps.store.contracts.getLatest(room.id);
-  if (!contract?.body.verification) {
-    throw new ConflictError('Cannot verify: no agreed test artifact.');
-  }
-  const missing = unverifiedContractors(deps, room);
-  if (missing.length > 0) {
-    throw new ConflictError(`Cannot verify: missing pass from ${missing.join(', ')}.`);
-  }
-}

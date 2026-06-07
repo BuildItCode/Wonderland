@@ -129,6 +129,12 @@ _Created: 2026-06-03_
 - Visual: none
 - Notes: Rule-based chair — auto-advance on consensus, next-phase prompts, state-digest summary, auto-declare. Facilitator optional for auto rooms. Fixed `post` payload schema (string|object) after live MCP testing showed a client stringifies it. Verified live: a no-facilitator auto room ran to a ratified close with no manual advance. 96 tests green.
 
+## 2026-06-03 — Trimmed templates to the two proven ones ✓
+- Milestone: post-M3 cleanup
+- Files: removed src/templates/{api-negotiation-verified,cross-team-debug}.ts + src/engine/verification.ts + verification/consumer-driven tests; pruned verification from domain/store/engine/transport/console; updated templates/multi-room/rest/full-integration tests
+- Visual: none
+- Notes: Kept api-negotiation + api-negotiation-auto (both live-proven). Removed the verify feature entirely (tool surface 13 → 12). 86 tests green.
+
 <!-- Auto-populated by build and validate phases -->
 
 ---

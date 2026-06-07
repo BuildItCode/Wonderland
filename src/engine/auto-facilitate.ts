@@ -1,6 +1,6 @@
-import type { Room, Template } from '../domain/index.js';
+import type { Room } from '../domain/index.js';
 import type { EngineDeps } from './deps.js';
-import { contractorIds, unsignedContractors, unverifiedContractors } from './consensus.js';
+import { contractorIds, unsignedContractors } from './consensus.js';
 import { appendNote } from './notes.js';
 import { buildDoc } from './doc.js';
 
@@ -9,17 +9,17 @@ const PHASE_HINTS: Record<string, string> = {
     'Propose phase — put a contract forward (propose) and sign it (accept). The room advances automatically once every contractor has signed.',
   implement:
     'Implement phase — build your side, report results (inform / kind "result"), then set_status "done".',
-  verify: 'Verify phase — run the agreed test and call submit_verification.',
   ratify: 'Ratify phase — agreement reached; closing.',
 };
 
 /**
- * Rule-based chair (no LLM). Invoked after joins/posts/status/verification; advances
- * the phase, posts the next-phase prompt, maintains a state-digest summary, and
- * auto-declares the outcome — all from the same consensus rules the gate already uses.
+ * Rule-based chair (no LLM). Invoked after joins/posts/status; advances the phase,
+ * posts the next-phase prompt, maintains a state-digest summary, and auto-declares —
+ * all from the same consensus rules the gate already uses.
  */
 export function runAutoFacilitation(deps: EngineDeps, roomId: string): void {
-  const template = templateFor(deps, roomId);
+  const seed = deps.store.rooms.get(roomId);
+  const template = seed ? deps.templates.get(seed.templateId) : undefined;
   if (!template?.autoFacilitate) {
     return;
   }
@@ -29,59 +29,43 @@ export function runAutoFacilitation(deps: EngineDeps, roomId: string): void {
       break;
     }
     if (room.phase === 'ratify') {
-      closeIfReady(deps, room, template);
+      closeIfReady(deps, room);
       break;
     }
     const next = template.phases[template.phases.indexOf(room.phase) + 1];
-    if (next === undefined || !canAdvance(deps, room, template)) {
+    if (next === undefined || !canAdvance(deps, room)) {
       break;
     }
     deps.store.rooms.setPhase(roomId, next);
     appendNote(deps, room, 'system', PHASE_HINTS[next] ?? `Phase: ${next}.`);
-    writeSummary(deps, roomId, template);
+    writeSummary(deps, roomId);
   }
-  writeSummary(deps, roomId, template);
+  writeSummary(deps, roomId);
 }
 
-function canAdvance(deps: EngineDeps, room: Room, template: Template): boolean {
+function canAdvance(deps: EngineDeps, room: Room): boolean {
   switch (room.phase) {
     case 'frame':
       return contractorsAll(deps, room, (status) => status !== 'invited' && status !== 'preparing');
     case 'propose': {
       const latest = deps.store.contracts.getLatest(room.id);
-      if (!latest) {
-        return false;
-      }
-      return unsignedContractors(deps, room).length === 0 && hasArtifact(latest.body, template);
+      return latest !== null && unsignedContractors(deps, room).length === 0;
     }
     case 'implement':
       return contractorsAll(deps, room, (status) => status === 'done');
-    case 'verify':
-      return unverifiedContractors(deps, room).length === 0;
     default:
       return false;
   }
 }
 
-function closeIfReady(deps: EngineDeps, room: Room, template: Template): void {
-  if (!deps.store.contracts.getLatest(room.id)) {
+function closeIfReady(deps: EngineDeps, room: Room): void {
+  if (!deps.store.contracts.getLatest(room.id) || unsignedContractors(deps, room).length > 0) {
     return;
   }
-  if (unsignedContractors(deps, room).length > 0) {
-    return;
-  }
-  if (template.exit === 'verified-solution' && unverifiedContractors(deps, room).length > 0) {
-    return;
-  }
-  const outcome = template.exit === 'verified-solution' ? 'verified' : 'ratified';
-  deps.store.rooms.setDoc(room.id, buildDoc(deps, room, outcome));
-  deps.store.rooms.setOutcome(room.id, outcome);
+  deps.store.rooms.setDoc(room.id, buildDoc(deps, room, 'ratified'));
+  deps.store.rooms.setOutcome(room.id, 'ratified');
   deps.store.rooms.setPhase(room.id, 'closed');
-  appendNote(deps, room, 'system', `Room closed automatically: ${outcome}.`);
-}
-
-function hasArtifact(body: { verification?: string }, template: Template): boolean {
-  return template.exit !== 'verified-solution' || Boolean(body.verification);
+  appendNote(deps, room, 'system', 'Room closed automatically: ratified.');
 }
 
 function contractorsAll(
@@ -95,7 +79,7 @@ function contractorsAll(
   return contractors.length > 0 && contractors.every((participant) => predicate(participant.status));
 }
 
-function writeSummary(deps: EngineDeps, roomId: string, _template: Template): void {
+function writeSummary(deps: EngineDeps, roomId: string): void {
   const room = deps.store.rooms.get(roomId);
   if (!room) {
     return;
@@ -107,9 +91,4 @@ function writeSummary(deps: EngineDeps, roomId: string, _template: Template): vo
     ? ` Contract v${latest.version} "${latest.body.title}" — signed ${latest.signatures.length}/${total}.`
     : ' No contract yet.';
   deps.store.rooms.setSummary(roomId, summary);
-}
-
-function templateFor(deps: EngineDeps, roomId: string): Template | undefined {
-  const room = deps.store.rooms.get(roomId);
-  return room ? deps.templates.get(room.templateId) : undefined;
 }

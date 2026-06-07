@@ -1,7 +1,7 @@
 import { ConflictError, ForbiddenError, type AdvanceResult } from '../domain/index.js';
 import type { EngineDeps } from './deps.js';
 import { requireParticipant, requireRoom, requireTemplate } from './guards.js';
-import { unsignedContractors, unverifiedContractors } from './consensus.js';
+import { unsignedContractors } from './consensus.js';
 
 /**
  * Advance the room to the next phase (facilitator only).
@@ -27,20 +27,6 @@ export function advancePhase(deps: EngineDeps, token: string): AdvanceResult {
   const missing = unsignedContractors(deps, room);
   if (missing.length > 0) {
     return { blocked: 'consensus', missing };
-  }
-  if (room.phase === 'propose' && template.exit === 'verified-solution') {
-    const latest = deps.store.contracts.getLatest(room.id);
-    if (!latest?.body.verification) {
-      throw new ConflictError(
-        'A verified-solution contract must agree a test artifact before implementing.',
-      );
-    }
-  }
-  if (room.phase === 'verify') {
-    const unverified = unverifiedContractors(deps, room);
-    if (unverified.length > 0) {
-      return { blocked: 'verification', missing: unverified };
-    }
   }
   deps.store.rooms.setPhase(room.id, nextPhase);
   return { phase: nextPhase };

@@ -67,10 +67,6 @@ export interface ContractRepository {
   markSuperseded(roomId: RoomId, version: number, supersededBy: number): void;
   /** The highest contract version this participant has signed, or null. */
   latestSignedVersion(roomId: RoomId, participantId: ParticipantId): number | null;
-  /** Record a verification pass on a version; idempotent per participant. */
-  addVerification(roomId: RoomId, version: number, participantId: ParticipantId): void;
-  /** Participants who have passed verification on a version. */
-  verifiedBy(roomId: RoomId, version: number): ParticipantId[];
 }
 
 /** The full persistence surface the engine depends on. */

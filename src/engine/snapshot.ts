@@ -24,7 +24,6 @@ export function roomSnapshot(deps: EngineDeps, token: string): RoomSnapshot {
         version: latest.version,
         proposedBy: latest.proposedBy,
         signatures: latest.signatures,
-        verifiedBy: deps.store.contracts.verifiedBy(room.id, latest.version),
       }
     : null;
   return {

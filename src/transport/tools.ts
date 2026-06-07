@@ -144,20 +144,6 @@ export function registerTools(server: McpServer, service: HubService): void {
   );
 
   server.registerTool(
-    'submit_verification',
-    {
-      description:
-        'Submit a verification pass/fail for a contract version (contractor only, verify phase).',
-      inputSchema: {
-        token: z.string().min(1),
-        version: z.number().int().positive(),
-        passed: z.boolean(),
-      },
-    },
-    (args) => run(() => service.submitVerification(args.token, args.version, args.passed)),
-  );
-
-  server.registerTool(
     'declare',
     {
       description: 'Close the room with an outcome and finalize the doc (facilitator only).',

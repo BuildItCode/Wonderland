@@ -29,13 +29,8 @@ export interface PostResult {
   messageId: MessageId;
 }
 
-/** Result of an advance attempt: the new phase, or a block listing who must still act. */
-export type AdvanceResult =
-  | { phase: Phase }
-  | { blocked: 'consensus' | 'verification'; missing: ParticipantId[] };
-
-/** Result of submitting verification: the contractors who still need to pass. */
-export type VerifyResult = { remaining: ParticipantId[] };
+/** Result of an advance attempt: the new phase, or a consensus block listing who must still sign. */
+export type AdvanceResult = { phase: Phase } | { blocked: 'consensus'; missing: ParticipantId[] };
 
 /** A read-only snapshot of room state for display. */
 export interface RoomSnapshot {
@@ -50,7 +45,6 @@ export interface RoomSnapshot {
     version: number;
     proposedBy: ParticipantId;
     signatures: ParticipantId[];
-    verifiedBy: ParticipantId[];
   } | null;
 }
 
@@ -87,8 +81,6 @@ export interface HubService {
   advancePhase(token: LinkToken): AdvanceResult;
   /** Regress to an earlier phase (facilitator only), forcing contract re-signature. */
   regressPhase(token: LinkToken, to: Phase, reason: string): RegressResult;
-  /** Submit a verification pass/fail for a contract version (contractor only, verify phase). */
-  submitVerification(token: LinkToken, version: number, passed: boolean): VerifyResult;
   /** Close the room with an outcome and finalize the document (facilitator only). */
   declare(token: LinkToken, outcome: Outcome): DeclareResult;
   /** Read the finalized document (any participant; survives close). */

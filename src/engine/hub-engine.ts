@@ -16,14 +16,12 @@ import type {
   RoomSnapshot,
   SpeechActType,
   TemplateMeta,
-  VerifyResult,
 } from '../domain/index.js';
 import type { EngineDeps } from './deps.js';
 import { createRoom, join, resolveLink } from './lifecycle.js';
 import { myState, post, readRoom, setStatus } from './messaging.js';
 import { advancePhase } from './phase.js';
 import { regressPhase } from './regression.js';
-import { submitVerification } from './verification.js';
 import { declare, readDoc, updateSummary } from './closing.js';
 import { listTemplates, roomSnapshot } from './snapshot.js';
 
@@ -77,11 +75,6 @@ export class HubEngine implements HubService {
   /** Regress to an earlier phase, forcing re-signature (facilitator only). */
   regressPhase(token: string, to: Phase, reason: string): RegressResult {
     return regressPhase(this.deps, token, to, reason);
-  }
-
-  /** Submit a verification pass/fail for a contract version (contractor only, verify phase). */
-  submitVerification(token: string, version: number, passed: boolean): VerifyResult {
-    return submitVerification(this.deps, token, version, passed);
   }
 
   /** Replace the living summary (facilitator only). */

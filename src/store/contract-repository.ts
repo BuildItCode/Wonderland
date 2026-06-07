@@ -78,23 +78,6 @@ export class SqliteContractRepository implements ContractRepository {
     return row?.v ?? null;
   }
 
-  addVerification(roomId: RoomId, version: number, participantId: ParticipantId): void {
-    this.db
-      .prepare(
-        'INSERT OR IGNORE INTO verifications (room_id, version, participant_id) VALUES (?, ?, ?)',
-      )
-      .run(roomId, version, participantId);
-  }
-
-  verifiedBy(roomId: RoomId, version: number): ParticipantId[] {
-    const rows = this.db
-      .prepare(
-        'SELECT participant_id FROM verifications WHERE room_id = ? AND version = ? ORDER BY participant_id',
-      )
-      .all(roomId, version) as unknown as SignatureRow[];
-    return rows.map((row) => row.participant_id);
-  }
-
   private signaturesFor(roomId: RoomId, version: number): ParticipantId[] {
     const rows = this.db
       .prepare(

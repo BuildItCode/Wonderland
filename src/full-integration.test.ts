@@ -64,11 +64,11 @@ function tokenOf(created: Created, team: string): string {
 }
 
 describe('full integration over MCP', () => {
-  it('runs a verified-solution negotiation end to end (AC7, AC10)', async () => {
+  it('runs an api-negotiation to a ratified close (AC7)', async () => {
     const h = await boot();
     const created = (await call(h.client, 'create_room', {
       task: 'integrate payments',
-      templateId: 'api-negotiation-verified',
+      templateId: 'api-negotiation',
       parties: PARTIES,
     })) as Created;
     const fac = tokenOf(created, 'platform');
@@ -78,60 +78,24 @@ describe('full integration over MCP', () => {
     for (const token of [fac, a, b]) {
       await call(h.client, 'join', { token });
     }
-    await call(h.client, 'advance_phase', { token: fac });
-    await call(h.client, 'post', {
-      token: b,
-      act: 'propose',
-      payload: {
-        body: { title: 'Charges API', interface: 'POST /charges', verification: 'shared pact suite' },
-      },
-    });
-    await call(h.client, 'post', { token: a, act: 'accept', payload: { version: 1 } });
-    await call(h.client, 'post', { token: b, act: 'accept', payload: { version: 1 } });
-    await call(h.client, 'advance_phase', { token: fac }); // implement
-    await call(h.client, 'advance_phase', { token: fac }); // verify
-    await call(h.client, 'submit_verification', { token: a, version: 1, passed: true });
-    await call(h.client, 'submit_verification', { token: b, version: 1, passed: true });
-    expect(await call(h.client, 'advance_phase', { token: fac })).toEqual({ phase: 'ratify' });
-
-    const declared = (await call(h.client, 'declare', { token: fac, outcome: 'verified' })) as {
-      doc: string;
-    };
-    expect(declared.doc).toContain('— verified');
-    expect(declared.doc).toContain('## Verification');
-    await h.stop();
-  });
-
-  it('runs a cross-team-debug session end to end (AC11)', async () => {
-    const h = await boot();
-    const created = (await call(h.client, 'create_room', {
-      task: 'checkout 500s on settlement',
-      templateId: 'cross-team-debug',
-      parties: PARTIES,
-    })) as Created;
-    const fac = tokenOf(created, 'platform');
-    const a = tokenOf(created, 'A');
-    const b = tokenOf(created, 'B');
-
-    for (const token of [fac, a, b]) {
-      await call(h.client, 'join', { token });
-    }
-    // failure is allowed in the debug frame phase
-    await call(h.client, 'post', { token: a, act: 'failure', payload: { reason: 'settlement 500', fatal: false } });
     await call(h.client, 'advance_phase', { token: fac }); // propose
     await call(h.client, 'post', {
       token: a,
       act: 'propose',
-      payload: { body: { title: 'root cause: stale cache', interface: 'invalidate on settle' } },
+      payload: { body: { title: 'Charges API', interface: 'POST /charges' } },
     });
     await call(h.client, 'post', { token: a, act: 'accept', payload: { version: 1 } });
     await call(h.client, 'post', { token: b, act: 'accept', payload: { version: 1 } });
-    // debug skips implement: propose -> ratify
+    await call(h.client, 'advance_phase', { token: fac }); // implement
+    await call(h.client, 'post', { token: a, act: 'inform', payload: { kind: 'result', summary: 'done A' } });
+    await call(h.client, 'post', { token: b, act: 'inform', payload: { kind: 'result', summary: 'done B' } });
     expect(await call(h.client, 'advance_phase', { token: fac })).toEqual({ phase: 'ratify' });
+
     const declared = (await call(h.client, 'declare', { token: fac, outcome: 'ratified' })) as {
       doc: string;
     };
     expect(declared.doc).toContain('— ratified');
+    expect(declared.doc).toContain('Charges API');
     await h.stop();
   });
 
@@ -164,7 +128,6 @@ describe('full integration over MCP', () => {
       payload: { reason: 'webhook fires before commit', fatal: true },
     });
 
-    // rejoining reports the regressed phase
     const rejoined = (await call(h.client, 'join', { token: a })) as { phase: string };
     expect(rejoined.phase).toBe('propose');
     await h.stop();

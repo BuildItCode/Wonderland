@@ -55,7 +55,7 @@ afterEach(() => {
 describe('multiple rooms on one hub', () => {
   it('keeps rooms isolated and scopes tokens to their own room', () => {
     const roomA = engine.createRoom({ task: 'integrate payments', templateId: 'api-negotiation', parties });
-    const roomB = engine.createRoom({ task: 'debug settlement', templateId: 'cross-team-debug', parties });
+    const roomB = engine.createRoom({ task: 'debug settlement', templateId: 'api-negotiation-auto', parties });
     expect(roomA.roomId).not.toBe(roomB.roomId);
 
     // drive room A only
@@ -77,7 +77,7 @@ describe('multiple rooms on one hub', () => {
 
   it('resolves each token to its own room and template', () => {
     const roomA = engine.createRoom({ task: 'integrate payments', templateId: 'api-negotiation', parties });
-    const roomB = engine.createRoom({ task: 'debug settlement', templateId: 'cross-team-debug', parties });
+    const roomB = engine.createRoom({ task: 'debug settlement', templateId: 'api-negotiation-auto', parties });
 
     const fromA = engine.resolveLink(tokenFor(roomA.links, 'A'));
     const fromB = engine.resolveLink(tokenFor(roomB.links, 'A'));
@@ -85,6 +85,6 @@ describe('multiple rooms on one hub', () => {
     expect(fromA.roomId).toBe(roomA.roomId);
     expect(fromA.template.id).toBe('api-negotiation');
     expect(fromB.roomId).toBe(roomB.roomId);
-    expect(fromB.template.id).toBe('cross-team-debug');
+    expect(fromB.template.id).toBe('api-negotiation-auto');
   });
 });

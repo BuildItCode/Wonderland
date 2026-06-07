@@ -59,52 +59,30 @@ afterEach(() => {
 });
 
 describe('template registry', () => {
-  it('lists all registered templates', () => {
+  it('lists the registered templates', () => {
     const ids = createTemplateRegistry()
       .list()
       .map((t) => t.id)
       .sort();
-    expect(ids).toEqual([
-      'api-negotiation',
-      'api-negotiation-auto',
-      'api-negotiation-verified',
-      'cross-team-debug',
-    ]);
+    expect(ids).toEqual(['api-negotiation', 'api-negotiation-auto']);
   });
 });
 
-describe('per-template config enforcement (AC11)', () => {
-  it('briefs the cross-team-debug procedure', () => {
-    const links = roomLinks('cross-team-debug');
+describe('per-template config', () => {
+  it('briefs the api-negotiation procedure', () => {
+    const links = roomLinks('api-negotiation');
     const briefing = engine.resolveLink(tk(links, 'A'));
     expect(briefing.template).toEqual({
-      id: 'cross-team-debug',
-      phases: ['frame', 'propose', 'ratify'],
+      id: 'api-negotiation',
+      phases: ['frame', 'propose', 'implement', 'ratify'],
       exit: 'ratified-contract',
-      roundCap: 4,
+      roundCap: 8,
     });
   });
 
-  it('enforces different allowed acts per template (failure in frame)', () => {
-    const debug = roomLinks('cross-team-debug'); // r1
-    const api = roomLinks('api-negotiation'); // r2
-
-    expect(engine.post(tk(debug, 'A'), 'failure', { reason: 'service 500s', fatal: false }).messageId).toBeTruthy();
-    expect(() => engine.post(tk(api, 'A'), 'failure', { reason: 'x', fatal: false })).toThrow(
-      /not allowed in phase 'frame'/,
-    );
-  });
-
-  it('advances along each template own phase list', () => {
-    const debug = roomLinks('cross-team-debug'); // r1
+  it('advances along the phase list once consensus is reached', () => {
+    const api = roomLinks('api-negotiation');
     store.rooms.setPhase('r1', 'propose');
-    engine.post(tk(debug, 'A'), 'propose', { body: { title: 'root cause', interface: 'fix' } });
-    engine.post(tk(debug, 'A'), 'accept', { version: 1 });
-    engine.post(tk(debug, 'B'), 'accept', { version: 1 });
-    expect(engine.advancePhase(tk(debug, 'platform'))).toEqual({ phase: 'ratify' });
-
-    const api = roomLinks('api-negotiation'); // r2
-    store.rooms.setPhase('r2', 'propose');
     engine.post(tk(api, 'A'), 'propose', { body: { title: 'v1', interface: 'x' } });
     engine.post(tk(api, 'A'), 'accept', { version: 1 });
     engine.post(tk(api, 'B'), 'accept', { version: 1 });

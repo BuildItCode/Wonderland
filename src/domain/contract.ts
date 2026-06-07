@@ -18,7 +18,6 @@ export const contractBodySchema = z
     title: z.string().min(1),
     interface: z.string().min(1),
     terms: z.array(contractTermSchema).default([]),
-    verification: z.string().min(1).optional(),
   })
   .strict();
 

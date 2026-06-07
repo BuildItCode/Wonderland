@@ -53,9 +53,6 @@ export function createRestRouter(service: HubService): Router {
   router.post('/regress', (req, res) =>
     send(res, () => service.regressPhase(req.body.token, req.body.to, req.body.reason)),
   );
-  router.post('/verify', (req, res) =>
-    send(res, () => service.submitVerification(req.body.token, req.body.version, req.body.passed)),
-  );
   router.post('/declare', (req, res) => send(res, () => service.declare(req.body.token, req.body.outcome)));
   router.post('/doc', (req, res) => send(res, () => service.readDoc(req.body.token)));
 

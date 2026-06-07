@@ -36,12 +36,7 @@ describe('REST façade', () => {
     const { base, stop } = await boot();
     const res = await fetch(base + '/api/templates');
     const templates = (await res.json()) as Array<{ id: string }>;
-    expect(templates.map((t) => t.id).sort()).toEqual([
-      'api-negotiation',
-      'api-negotiation-auto',
-      'api-negotiation-verified',
-      'cross-team-debug',
-    ]);
+    expect(templates.map((t) => t.id).sort()).toEqual(['api-negotiation', 'api-negotiation-auto']);
     await stop();
   });
 

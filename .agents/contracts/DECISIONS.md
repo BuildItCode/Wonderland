@@ -81,6 +81,15 @@ _Created: 2026-06-03_
 
 ---
 
+## 2026-06-03 — Trimmed to two proven templates
+
+- Triggered by: user — keep only templates validated with real agents; remove ones that "may not work".
+- Removed: `api-negotiation-verified` and `cross-team-debug` templates, plus the verification machinery only the verified template used — `submit_verification` (tool + engine), the verify-phase gate, the `verifications` table, the `verified` outcome / `verified-solution` exit, the consumer-driven "agree the test before implementing" guard, and their tests.
+- Kept: `api-negotiation` (facilitator-driven) and `api-negotiation-auto` (hub-chaired). Both proven live with agents.
+- Result: tool surface back to 12; 86 tests green; typecheck + lint clean. (M3 milestone visuals are point-in-time snapshots and still mention the removed templates.)
+
+---
+
 <!-- Template for future entries:
 
 ## {{DATE}} — {{Decision Title}}

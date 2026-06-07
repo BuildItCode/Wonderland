@@ -22,9 +22,6 @@ function buildSuccessDoc(deps: EngineDeps, room: Room, outcome: Outcome): string
         lines.push(`- **${term.key}**: ${term.detail}`);
       }
     }
-    if (contract.body.verification) {
-      lines.push('', '## Verification', contract.body.verification);
-    }
   }
 
   lines.push('', '## Task Split');

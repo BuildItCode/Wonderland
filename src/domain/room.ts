@@ -1,36 +1,29 @@
 import { z } from 'zod';
 import { idSchema } from './ids.js';
-import { phaseSchema, presenceSchema, roleSchema, outcomeSchema } from './enums.js';
+import {
+  facilitationSchema,
+  outcomeSchema,
+  presenceSchema,
+  roleSchema,
+  roomStatusSchema,
+} from './enums.js';
 import { messageSchema } from './speech-acts.js';
 
-/** Exit criterion a template enforces before a room may close successfully. */
-export const exitCriterionSchema = z.enum(['ratified-contract']);
+/** A participant's stance on the current proposal. */
+export const stanceSchema = z.enum(['none', 'agree', 'block']);
 
-/** Union of the valid exit criteria. */
-export type ExitCriterion = z.infer<typeof exitCriterionSchema>;
-
-/** Public, read-only description of a template's negotiation procedure. */
-export const templateMetaSchema = z
-  .object({
-    id: z.string().min(1),
-    phases: z.array(phaseSchema).min(1),
-    exit: exitCriterionSchema,
-    roundCap: z.number().int().positive(),
-  })
-  .strict();
-
-/** The procedure a room follows, as surfaced to agents. */
-export type TemplateMeta = z.infer<typeof templateMetaSchema>;
+/** Union of the valid stances. */
+export type Stance = z.infer<typeof stanceSchema>;
 
 /** A single attendee entry as shown in a briefing. */
 export const attendeeSchema = z.object({ team: z.string().min(1), role: roleSchema }).strict();
 
-/** What a role-link reveals: the task, the procedure, and this role's instructions. */
+/** What a role-link reveals: the task, how the room works, and this role's instructions. */
 export const briefingSchema = z
   .object({
     roomId: idSchema,
     task: z.string().min(1),
-    template: templateMetaSchema,
+    facilitation: facilitationSchema,
     yourRole: roleSchema,
     yourTeam: z.string().min(1),
     attendees: z.array(attendeeSchema),
@@ -52,7 +45,7 @@ export const participantSchema = z
   })
   .strict();
 
-/** A facilitator or contractor occupying a room. */
+/** A facilitator or working participant occupying a room. */
 export type Participant = z.infer<typeof participantSchema>;
 
 /** A bearer token addressing exactly one role in one room. */
@@ -74,8 +67,7 @@ export const myStateSchema = z
     me: idSchema,
     status: presenceSchema,
     myMessages: z.array(messageSchema).default([]),
-    signedVersion: z.number().int().positive().nullable(),
-    assignedTasks: z.array(z.string()).default([]),
+    stance: stanceSchema,
   })
   .strict();
 
@@ -87,8 +79,8 @@ export const roomSchema = z
   .object({
     id: idSchema,
     task: z.string().min(1),
-    templateId: z.string().min(1),
-    phase: phaseSchema,
+    facilitation: facilitationSchema,
+    status: roomStatusSchema,
     round: z.number().int().nonnegative(),
     summary: z.string().default(''),
     outcome: outcomeSchema.nullable(),

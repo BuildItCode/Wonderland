@@ -1,5 +1,5 @@
 # Architecture — Wonderland (Agent Collaboration Hub)
-_Created: 2026-06-03 | Last updated: 2026-06-03_
+_Created: 2026-06-03 | Last updated: 2026-06-07_
 
 ---
 
@@ -8,18 +8,18 @@ _Created: 2026-06-03 | Last updated: 2026-06-03_
 ```mermaid
 graph TD
   Conv["Convener agent/human"]
-  Fac["Facilitator agent (MCP client)"]
-  CA["Contractor A (MCP client)"]
-  CB["Contractor B (MCP client)"]
+  Fac["Facilitator agent (agent-mode rooms only)"]
+  PA["Participant A (MCP client)"]
+  PB["Participant B (MCP client)"]
 
   Hub["Wonderland Hub — MCP server (Streamable HTTP)"]
-  Eng["Room Engine: phase machine + consensus gate"]
+  Eng["Room Engine: transcript-derived consensus + auto-chair"]
   Store["SQLite store"]
 
   Conv -->|create_room| Hub
-  Fac -->|advance / summary / declare| Hub
-  CA -->|join / post / status| Hub
-  CB -->|join / post / status| Hub
+  Fac -->|update_summary / declare| Hub
+  PA -->|join / post (say·propose·agree·block) / status| Hub
+  PB -->|join / post / status| Hub
   Hub --> Eng --> Store
 ```
 
@@ -29,11 +29,8 @@ graph TD
 
 ```mermaid
 graph LR
-  T["transport: MCP server + HTTP routing"] --> E["engine: phase machine, consensus gate, negotiation rules"]
+  T["transport: MCP server + HTTP routing + REST/UI"] --> E["engine: consensus, auto-facilitation, summary/doc"]
   E --> ST["store: SQLite repositories"]
-  E --> SUM["summary + doc"]
-  E --> TPL["templates: registry + phase/exit config"]
-  E --> VER["verification: shared test + pass signals"]
   D["domain: types + zod schemas"] --- T
   D --- E
   D --- ST
@@ -41,33 +38,30 @@ graph LR
 
 ---
 
-## Data Flow
+## Data Flow (auto-facilitated room)
 
 ```mermaid
 sequenceDiagram
   participant Conv as Convener
   participant Hub as Hub
-  participant Fac as Facilitator
-  participant A as Contractor A
-  participant B as Contractor B
+  participant A as Participant A
+  participant B as Participant B
 
-  Conv->>Hub: create_room(task, template, parties)
+  Conv->>Hub: create_room(task, facilitation="auto", parties)
   Hub-->>Conv: roomId, url, role-links
-  A->>Hub: resolve_link (briefing, read-only)
-  A->>Hub: join (binds stable id)
-  B->>Hub: join
-  Note over A,B: frame — post inform (capability manifest)
-  Fac->>Hub: update_summary (gap named)
-  A->>Hub: propose (contract v1)
-  B->>Hub: reject + counter
-  A->>Hub: propose (contract v2)
-  A->>Hub: accept(v2)
-  B->>Hub: accept(v2)
-  Fac->>Hub: advance_phase (gate: all signed v2 ✓)
-  Note over A,B: implement — status=implementing, post inform(results)
-  Fac->>Hub: advance_phase → ratify
-  Fac->>Hub: declare(ratified) → doc, invalidate links
+  A->>Hub: resolve_link (briefing, read-only) → join
+  B->>Hub: resolve_link → join
+  A->>Hub: post say (discussion)
+  A->>Hub: post propose { text, title? }   (the current proposal)
+  A->>Hub: post agree
+  B->>Hub: post agree
+  Note over Hub: every participant agreed → hub closes the room
+  Hub-->>A: status=closed, outcome=resolved, doc written
 ```
+
+In an **agent-facilitated** room the hub does not auto-close; a facilitator agent calls
+`declare("resolved")` once everyone has agreed (or `declare("unsolvable")`). A new
+`propose` always supersedes the previous one and resets every participant's stance.
 
 ---
 
@@ -76,17 +70,17 @@ sequenceDiagram
 | Decision            | Choice                                   | Rationale                                                        |
 |---------------------|------------------------------------------|-----------------------------------------------------------------|
 | Platform            | backend                                  | A model-less coordination server.                               |
-| Language            | TypeScript                               | Strong typing for typed speech acts + versioned contracts.      |
+| Language            | TypeScript                               | Strong typing for the speech-act union + room state.            |
 | MCP                 | `@modelcontextprotocol/sdk`              | Official, most mature SDK.                                       |
 | Transport           | Streamable HTTP (hosted on Express)      | Multi-client rooms, per-room routing, plain HTTP doc view.      |
-| Persistence         | SQLite via built-in `node:sqlite` (DatabaseSync) | Rooms survive restart; resumability (AC9). Synchronous, zero native deps. |
-| Validation          | `zod`                                    | Validate speech-act payloads + contract shapes at the boundary. |
+| Persistence         | SQLite via built-in `node:sqlite` (DatabaseSync) | Rooms survive restart; resumability. Synchronous, zero native deps. |
+| Validation          | `zod`                                    | Validate speech-act payloads at the boundary.                   |
 | Test runner         | `vitest`                                 | Fast, TS-native; drives multi-client integration runs.          |
 | Lint / format       | ESLint + Prettier                        | Standard.                                                       |
-| Room addressing     | path-based `/{roomId}` (v1)              | Subdomain is a cosmetic layer added later; see Open Questions.   |
-| Message model       | typed speech acts (FIPA-inspired)        | Facilitator + hub can reason about state; not free text.        |
-| Negotiation protocol| Contract Net (manager + contractors)     | Facilitator = manager; working agents = contractors.            |
-| Verification        | consumer-driven contracts (Pact-style)   | Consumer declares need; provider signs + verifies. (M3)         |
+| Room addressing     | path-based `/{roomId}` (v1)              | Subdomain is a cosmetic layer added later.                       |
+| Message model       | free-form speech acts (`say`/`propose`/`agree`/`block`) | Minimal vocabulary the rule-based chair can read; proposals are plain text. |
+| Consensus           | unanimous agreement on the current proposal, derived from the transcript | No contracts/signatures/phases — the latest `propose` + each party's `agree`/`block` is the state. |
+| Facilitation        | per-room: `auto` (hub chairs, no LLM) or `agent` (facilitator declares) | The two behaviours that used to be separate templates. |
 
 ---
 
@@ -97,47 +91,35 @@ sequenceDiagram
 ```typescript
 // ---- core enums ----
 type SpeechActType =
-  | 'inform'    // share info / capability manifest / result
-  | 'propose'   // put forward a contract version
-  | 'accept'    // sign the current contract version
-  | 'reject'    // refuse current proposal (reason / counter)
-  | 'request'   // ask another party for info or action
-  | 'failure';  // unrecoverable problem — may trigger regression
+  | 'propose'   // put a candidate solution forward (plain text) — becomes the current proposal
+  | 'agree'     // this participant agrees the current proposal resolves the task for them
+  | 'block'     // this participant objects, with a reason
+  | 'say';      // free-form discussion, no stance
 
-type Phase   = 'frame' | 'propose' | 'implement' | 'verify' | 'ratify' | 'closed';
-type Outcome = 'ratified' | 'verified' | 'unsolvable';
-type Role    = 'facilitator' | 'contractor';
-type Presence =
-  | 'invited' | 'preparing' | 'joined'
-  | 'thinking' | 'implementing' | 'blocked'
-  | 'proposing' | 'ratified' | 'done';
+type RoomStatus   = 'open' | 'closed';
+type Outcome      = 'resolved' | 'unsolvable';
+type Role         = 'facilitator' | 'participant';
+type Facilitation = 'auto' | 'agent';
+type Presence     = 'invited' | 'joined' | 'thinking' | 'blocked' | 'done';
+type Stance       = 'none' | 'agree' | 'block';   // a participant's stance on the current proposal
 
 // ---- room state ----
 interface Briefing {            // resolve_link result — read-only, pre-join
   roomId: string;
   task: string;
-  template: TemplateMeta;       // phases, exit criterion, round cap
+  facilitation: Facilitation;
   yourRole: Role;
   yourTeam: string;
   attendees: { team: string; role: Role }[];
-  procedure: string;           // how this template's protocol runs (role-agnostic)
+  procedure: string;           // how a Wonderland room works (role-agnostic)
   instructions: string;        // what THIS role must do — the link carries its own briefing
 }
 
-interface ContractVersion {
-  version: number;
-  proposedBy: ParticipantId;
-  body: unknown;                // interface + behavioral terms + (M3) test ref
-  signatures: ParticipantId[];  // accept = signature on THIS version
-  supersededBy?: number;        // set on regression / renegotiation
-}
-
-interface Message {             // append-only transcript entry
+interface Message {             // append-only transcript entry; consensus is derived from these
   id: string;
-  from: ParticipantId;
+  from: ParticipantId;          // or 'system' for hub/facilitator notes
   act: SpeechActType;
-  payload: unknown;
-  refVersion?: number;
+  payload: unknown;             // propose {text,title?} | agree {note?} | block {reason} | say {text}
   ts: number;
 }
 
@@ -145,41 +127,38 @@ interface MyState {             // one-call catch-up for a returning agent
   me: ParticipantId;
   status: Presence;
   myMessages: Message[];
-  signedVersion: number | null;
-  assignedTasks: string[];
+  stance: Stance;              // my stance on the current proposal
 }
 
 // ---- MCP tool surface (model-less hub) ----
 // open to all parties:
-createRoom(in: { task: string; templateId: string; parties: { team: string; role: Role }[] })
+createRoom(in: { task: string; facilitation?: Facilitation; parties: { team: string; role: Role }[] })
   : { roomId: string; url: string; links: RoleLink[] };
 resolveLink(token: string): Briefing;                 // read-only, pre-join
-join(token: string): { participantId: ParticipantId; phase: Phase; summary: string };
-post(token: string, act: SpeechActType, payload: unknown, refVersion?: number): { messageId: string };
+join(token: string): { participantId: ParticipantId; status: RoomStatus; summary: string };
+post(token: string, act: SpeechActType, payload: unknown): { messageId: string };
 setStatus(token: string, status: Presence): void;
 readRoom(token: string, since?: string): Message[];
 myState(token: string): MyState;
 
-// facilitator-only:
+// facilitator-only (agent-mode rooms):
 updateSummary(token: string, summary: string): void;
-advancePhase(token: string): { phase: Phase } | { blocked: 'consensus'; missing: ParticipantId[] };
-regressPhase(token: string, to: Phase, reason: string): { phase: Phase };   // M2
-declare(token: string, outcome: Outcome): { doc: string };                  // finalize + invalidate links
+declare(token: string, outcome: Outcome): { doc: string };  // resolved requires unanimous agreement
 ```
+
+In an `auto` room the hub performs `declare` itself: it closes `resolved` the instant every
+participant has agreed, or `unsolvable` once the proposal cap is exceeded.
 
 ---
 
 ## Module Boundaries
 
-> List what each module owns and what it must never import from.
-
 | Module      | Owns                                                        | Must not import                  |
 |-------------|------------------------------------------------------------|----------------------------------|
 | `domain`    | shared types, zod schemas                                  | everything (leaf module)         |
 | `store`     | SQLite repositories, schema, persistence                   | `engine`, `transport`            |
-| `engine`    | phase machine, consensus gate, negotiation rules, summary/doc | `transport`, `express`, MCP SDK  |
-| `templates` | template definitions + registry                            | `transport`, `store`             |
-| `transport` | MCP server wiring, HTTP routing, tool → engine dispatch, REST façade + static test UI | `store` (reach state via engine) |
+| `engine`    | consensus (from transcript), auto-facilitation, summary/doc | `transport`, `express`, MCP SDK  |
+| `transport` | MCP server wiring, HTTP routing, tool → engine dispatch, REST façade + static UI | `store` (reach state via engine) |
 
 ---
 
@@ -189,7 +168,7 @@ declare(token: string, outcome: Outcome): { doc: string };                  // f
 
 - `@modelcontextprotocol/sdk` — MCP server + Streamable HTTP transport
 - `express` — HTTP host, per-room routing, read-only doc view
-- `zod` — speech-act / contract payload validation
+- `zod` — speech-act payload validation
 - `nanoid` — room ids and link tokens
 - _Persistence:_ built-in `node:sqlite` (`DatabaseSync`) — no dependency
 - `typescript`, `tsx`, `@types/node`, `@types/express` — toolchain

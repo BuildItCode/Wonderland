@@ -3,7 +3,6 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import { createStore, openDatabase } from './store/index.js';
-import { createTemplateRegistry } from './templates/index.js';
 import { createEngine } from './engine/index.js';
 import { createHubServer } from './transport/index.js';
 
@@ -21,7 +20,7 @@ export function main(): void {
   mkdirSync(dirname(env.DATABASE_PATH), { recursive: true });
   const db = openDatabase(env.DATABASE_PATH);
   const store = createStore(db);
-  const engine = createEngine({ store, templates: createTemplateRegistry() });
+  const engine = createEngine({ store });
   const app = createHubServer(engine);
   app.listen(env.PORT, () => {
     process.stdout.write(

@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase, createStore } from '../store/index.js';
-import { createTemplateRegistry } from '../templates/index.js';
 import { createEngine, type IdGenerator } from './index.js';
 import type { CreateRoomInput, Store } from '../domain/index.js';
 import { HubEngine } from './hub-engine.js';
@@ -21,11 +20,11 @@ function seqIdGenerator(): IdGenerator {
 
 const PARTIES: CreateRoomInput = {
   task: 'integrate payments',
-  templateId: 'api-negotiation',
+  facilitation: 'agent',
   parties: [
     { team: 'platform', role: 'facilitator' },
-    { team: 'A', role: 'contractor' },
-    { team: 'B', role: 'contractor' },
+    { team: 'A', role: 'participant' },
+    { team: 'B', role: 'participant' },
   ],
 };
 
@@ -36,12 +35,7 @@ let engine: HubEngine;
 beforeEach(() => {
   db = openDatabase(':memory:');
   store = createStore(db);
-  engine = createEngine({
-    store,
-    templates: createTemplateRegistry(),
-    clock: { now: () => 1000 },
-    ids: seqIdGenerator(),
-  });
+  engine = createEngine({ store, clock: { now: () => 1000 }, ids: seqIdGenerator() });
 });
 
 afterEach(() => {
@@ -57,9 +51,9 @@ describe('createRoom', () => {
     expect(result.links[0]).toMatchObject({ role: 'facilitator', team: 'platform', roomId: 'r1' });
   });
 
-  it('rejects a party set without exactly one facilitator', () => {
+  it('rejects an agent room without exactly one facilitator', () => {
     expect(() =>
-      engine.createRoom({ ...PARTIES, parties: [{ team: 'A', role: 'contractor' }] }),
+      engine.createRoom({ ...PARTIES, parties: [{ team: 'A', role: 'participant' }] }),
     ).toThrow(/facilitator/);
     expect(() =>
       engine.createRoom({
@@ -67,44 +61,47 @@ describe('createRoom', () => {
         parties: [
           { team: 'x', role: 'facilitator' },
           { team: 'y', role: 'facilitator' },
-          { team: 'A', role: 'contractor' },
+          { team: 'A', role: 'participant' },
         ],
       }),
     ).toThrow(/facilitator/);
   });
 
-  it('rejects a party set with no contractor', () => {
+  it('rejects a party set with no participant', () => {
     expect(() =>
       engine.createRoom({ ...PARTIES, parties: [{ team: 'platform', role: 'facilitator' }] }),
-    ).toThrow(/contractor/);
+    ).toThrow(/participant/);
   });
 
-  it('rejects an unknown template', () => {
-    expect(() => engine.createRoom({ ...PARTIES, templateId: 'nope' })).toThrow(/Unknown template/);
+  it('allows an auto-facilitated room with no facilitator party', () => {
+    expect(() =>
+      engine.createRoom({
+        ...PARTIES,
+        facilitation: 'auto',
+        parties: [{ team: 'A', role: 'participant' }],
+      }),
+    ).not.toThrow();
   });
 });
 
 describe('resolveLink', () => {
   it('returns a read-only briefing without granting write access', () => {
     const { links } = engine.createRoom(PARTIES);
-    const contractorToken = links[1]!.token;
+    const participantToken = links[1]!.token;
 
-    const briefing = engine.resolveLink(contractorToken);
+    const briefing = engine.resolveLink(participantToken);
     expect(briefing).toMatchObject({
       roomId: 'r1',
       task: 'integrate payments',
-      yourRole: 'contractor',
+      facilitation: 'agent',
+      yourRole: 'participant',
       yourTeam: 'A',
     });
-    expect(briefing.template).toEqual({
-      id: 'api-negotiation',
-      phases: ['frame', 'propose', 'implement', 'ratify'],
-      exit: 'ratified-contract',
-      roundCap: 8,
-    });
+    expect(briefing.procedure).toMatch(/propose/);
+    expect(briefing.instructions.length).toBeGreaterThan(0);
     expect(briefing.attendees).toHaveLength(3);
     // read-only: status is still 'invited' after resolving
-    expect(store.participants.getByToken(contractorToken)?.status).toBe('invited');
+    expect(store.participants.getByToken(participantToken)?.status).toBe('invited');
   });
 
   it('throws for an unknown token', () => {
@@ -118,7 +115,7 @@ describe('join', () => {
     const token = links[1]!.token;
 
     const joined = engine.join(token);
-    expect(joined).toMatchObject({ participantId: 'p2', phase: 'frame', summary: '' });
+    expect(joined).toMatchObject({ participantId: 'p2', status: 'open', summary: '' });
     expect(store.participants.getByToken(token)?.status).toBe('joined');
   });
 

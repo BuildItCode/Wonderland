@@ -4,28 +4,28 @@ import {
   type Briefing,
   type CreateRoomInput,
   type CreateRoomResult,
+  type Facilitation,
   type JoinResult,
   type Participant,
   type Role,
   type RoleLink,
   type Room,
 } from '../domain/index.js';
-import { toTemplateMeta } from '../templates/index.js';
 import type { EngineDeps } from './deps.js';
-import { requireParticipant, requireRoom, requireTemplate } from './guards.js';
+import { requireParticipant, requireRoom } from './guards.js';
 import { procedureText, roleInstructions } from './briefing-text.js';
 import { runAutoFacilitation } from './auto-facilitate.js';
 
 /** Create a room and mint one role-link per party. */
 export function createRoom(deps: EngineDeps, input: CreateRoomInput): CreateRoomResult {
-  const template = requireTemplate(deps.templates, input.templateId);
-  assertValidParties(input, template.autoFacilitate ?? false);
+  const facilitation: Facilitation = input.facilitation ?? 'auto';
+  assertValidParties(input, facilitation);
   const roomId = deps.ids.room();
   const room: Room = {
     id: roomId,
     task: input.task,
-    templateId: template.id,
-    phase: template.initialPhase,
+    facilitation,
+    status: 'open',
     round: 0,
     summary: '',
     outcome: null,
@@ -40,52 +40,51 @@ export function createRoom(deps: EngineDeps, input: CreateRoomInput): CreateRoom
 export function resolveLink(deps: EngineDeps, token: string): Briefing {
   const me = requireParticipant(deps.store, token);
   const room = requireRoom(deps.store, me.roomId);
-  if (room.phase === 'closed') {
+  if (room.status === 'closed') {
     throw new ConflictError('Room is closed; this link is no longer valid.');
   }
-  const template = requireTemplate(deps.templates, room.templateId);
   const attendees = deps.store.participants
     .listByRoom(room.id)
     .map((participant) => ({ team: participant.team, role: participant.role }));
   return {
     roomId: room.id,
     task: room.task,
-    template: toTemplateMeta(template),
+    facilitation: room.facilitation,
     yourRole: me.role,
     yourTeam: me.team,
     attendees,
-    procedure: procedureText(template),
-    instructions: roleInstructions(template, me.role),
+    procedure: procedureText(room.facilitation),
+    instructions: roleInstructions(me.role, room.facilitation),
   };
 }
 
-/** Bind the caller's identity (idempotent) and return the room snapshot. */
+/** Bind the caller's identity (idempotent) and return the room view. */
 export function join(deps: EngineDeps, token: string): JoinResult {
   const me = requireParticipant(deps.store, token);
   const room = requireRoom(deps.store, me.roomId);
-  if (room.phase === 'closed') {
+  if (room.status === 'closed') {
     throw new ConflictError('Room is closed; this link is no longer valid.');
   }
-  if (me.status === 'invited' || me.status === 'preparing') {
+  if (me.status === 'invited') {
     deps.store.participants.setStatus(room.id, me.id, 'joined');
   }
   runAutoFacilitation(deps, me.roomId);
   const current = deps.store.rooms.get(me.roomId) ?? room;
-  return { participantId: me.id, phase: current.phase, summary: current.summary };
+  return { participantId: me.id, status: current.status, summary: current.summary };
 }
 
-function assertValidParties(input: CreateRoomInput, autoFacilitate: boolean): void {
+function assertValidParties(input: CreateRoomInput, facilitation: Facilitation): void {
   const facilitators = input.parties.filter((party) => party.role === 'facilitator').length;
-  const contractors = input.parties.filter((party) => party.role === 'contractor').length;
-  if (autoFacilitate) {
+  const participants = input.parties.filter((party) => party.role === 'participant').length;
+  if (facilitation === 'auto') {
     if (facilitators > 1) {
       throw new ValidationError('An auto-facilitated room allows at most one facilitator.');
     }
   } else if (facilitators !== 1) {
-    throw new ValidationError('A room requires exactly one facilitator.');
+    throw new ValidationError('An agent-facilitated room requires exactly one facilitator.');
   }
-  if (contractors < 1) {
-    throw new ValidationError('A room requires at least one contractor.');
+  if (participants < 1) {
+    throw new ValidationError('A room requires at least one participant.');
   }
 }
 

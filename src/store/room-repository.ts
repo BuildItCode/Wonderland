@@ -2,17 +2,17 @@ import type { DatabaseSync } from 'node:sqlite';
 import {
   roomSchema,
   type Outcome,
-  type Phase,
   type Room,
   type RoomId,
   type RoomRepository,
+  type RoomStatus,
 } from '../domain/index.js';
 
 interface RoomRow {
   id: string;
   task: string;
-  template_id: string;
-  phase: string;
+  facilitation: string;
+  status: string;
   round: number;
   summary: string;
   outcome: string | null;
@@ -26,14 +26,14 @@ export class SqliteRoomRepository implements RoomRepository {
   create(room: Room): void {
     this.db
       .prepare(
-        `INSERT INTO rooms (id, task, template_id, phase, round, summary, outcome, created_at)
+        `INSERT INTO rooms (id, task, facilitation, status, round, summary, outcome, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         room.id,
         room.task,
-        room.templateId,
-        room.phase,
+        room.facilitation,
+        room.status,
         room.round,
         room.summary,
         room.outcome,
@@ -51,8 +51,8 @@ export class SqliteRoomRepository implements RoomRepository {
     return roomSchema.parse({
       id: row.id,
       task: row.task,
-      templateId: row.template_id,
-      phase: row.phase,
+      facilitation: row.facilitation,
+      status: row.status,
       round: row.round,
       summary: row.summary,
       outcome: row.outcome,
@@ -60,8 +60,8 @@ export class SqliteRoomRepository implements RoomRepository {
     });
   }
 
-  setPhase(roomId: RoomId, phase: Phase): void {
-    this.db.prepare('UPDATE rooms SET phase = ? WHERE id = ?').run(phase, roomId);
+  setStatus(roomId: RoomId, status: RoomStatus): void {
+    this.db.prepare('UPDATE rooms SET status = ? WHERE id = ?').run(status, roomId);
   }
 
   setSummary(roomId: RoomId, summary: string): void {

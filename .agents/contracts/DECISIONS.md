@@ -90,6 +90,28 @@ _Created: 2026-06-03_
 
 ---
 
+## 2026-06-07 — Collapsed templates to one flow + facilitation flag
+
+- Triggered by: user — "do we need templates? can't it just be the task + facilitation going model by model until they agree the task is complete?" Chose the **"templates only"** collapse (one built-in flow; keep the phase/contract machinery).
+- Changed: domain (`facilitationSchema` enum; room gains `facilitation`; `CreateRoomInput.facilitation` replaces `templateId`; `HubService.listTemplates` removed; `Template.autoFacilitate` removed), templates (deleted `api-negotiation-auto`; single `api-negotiation` flow + exported `DEFAULT_TEMPLATE_ID`), store (rooms `facilitation` column + idempotent `ensureColumn` migration for existing DBs), engine (lifecycle uses the default flow + per-room facilitation; auto-facilitate gates on `room.facilitation`; briefing-text keys off facilitation; snapshot/hub-engine drop `listTemplates`), transport (`create_room` takes `facilitation` not `templateId`; REST `/templates` removed; console swaps the template picker for a facilitation selector). Docs: CONNECTING.md, ARCH.md, SPEC.md AC11.
+- Decision: There is one negotiation flow (frame → propose → implement → ratify, exit `ratified-contract`, round cap 8). The user no longer picks a template; they pick **who chairs the room** — `auto` (hub, rule-based, no LLM; the default) or `agent` (a facilitator agent). The two old templates were the same flow differing only by this flag, so it became a per-room option.
+- Rationale: For LLM participants the multi-template registry was ceremony; one flow + a chair switch matches the product intent ("a Google Meet for agents") and removes a selection the user found confusing. Kept the all-parties-agree consensus gate (the irreducible "we're done" signal) and the phase/contract machinery, per the chosen scope.
+- Alternatives considered: Full collapse — also drop phases + the typed/signed/versioned contract for a free-form propose/agree/object/block model (deferred — bigger change; user chose to keep the proven gates). Keep the two templates (rejected — they were one flow in disguise).
+- Result: tool surface stays 12; 85 tests green; typecheck + lint clean. Verified live on :4000 — an auto room (no facilitator, no template choice) ran join → propose → accept → done to an auto-declared `ratified` close; the `facilitation` migration applied cleanly to the existing dev DB.
+
+---
+
+## 2026-06-07 — Full collapse: free-form propose/agree, no phases or contracts
+
+- Triggered by: user — two chat agents joined an auto room, posted prose ("ready", "agree") via the old `inform` act, and the room never closed (no contract was ever created, so the consensus gate had nothing to ratify). Root cause: the contract/phase ceremony was heavier than the task warranted, so the agents short-circuited it with natural language. User chose "full collapse now".
+- Decision: Replace the whole negotiation model with a minimal, transcript-derived one. Acts are now `propose` (plain-text candidate solution), `agree`, `block` (with reason), and `say` (discussion) — there are **no phases, no typed/versioned/signed contracts, no advance/regress**. The **current proposal** is the latest `propose`; a participant's **stance** is their last `agree`/`block` after it; a new `propose` supersedes and resets all stances. A room is `open` until it closes `resolved` (every participant agreed) or `unsolvable` (facilitator declares, or an `auto` room exceeds the proposal cap). Consensus is computed from the message log — no contract/signature tables.
+- Changed (every layer): domain (`speechActTypeSchema` = propose/agree/block/say; `roomStatusSchema` open/closed; `outcomeSchema` resolved/unsolvable; `roleSchema` facilitator/**participant**; `stanceSchema`; removed `contract.ts`, `template.ts`, `phaseSchema`, `TemplateMeta`, `refVersion`). Store (rooms table: `status` replaces phase/template_id; dropped `contract_versions`/`signatures` tables and `messages.ref_version`; removed `contract-repository`). Engine (new `consensus.ts` derives proposal + stances from the transcript; `auto-facilitate` closes on all-agree / proposal cap; `closing.declare` gates `resolved` on unanimous agreement; rewrote doc/briefing-text/snapshot/messaging/lifecycle; deleted `phase.ts` + `regression.ts`; removed the template registry from `EngineDeps`). Transport (10 tools — dropped `advance_phase` + `regress_phase`; `post` acts updated; REST drops `/advance` + `/regress`; console shows proposal/agreement instead of phase/contract, role picker → participant). Deleted `src/templates/`. Docs: SPEC, ARCH, CONNECTING rewritten.
+- Rationale: For LLM participants the rigid scaffolding mainly created ways to stall. The agents naturally "propose a solution and agree" — so the protocol now matches that, closing in one turn per agent. Kept the one irreducible guarantee the user insisted on from the start: a room resolves **only** on unanimous agreement.
+- Cost / honest limits: Liveness is unchanged — MCP is pull-based, so turn-based chat agents still need either an agentic loop or a per-turn nudge; the collapse just makes each turn finish more. The structured-output discipline of typed contracts is gone (proposals are prose); fine for the in-house, judgment-based use, and re-addable later if a task needs machine-checkable terms.
+- Result: 14 test files / 60 tests green; typecheck + lint clean. Verified live on :4000 — the exact failing scenario (auto room, "calculate 1+1") now runs join → propose → agree → agree to an auto `resolved` close with the solution in the doc; DB reset to the new schema.
+
+---
+
 <!-- Template for future entries:
 
 ## {{DATE}} — {{Decision Title}}

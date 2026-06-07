@@ -4,8 +4,6 @@ import {
   type Room,
   type RoomId,
   type Store,
-  type Template,
-  type TemplateRegistry,
 } from '../domain/index.js';
 
 /** Resolve a token to its participant, or throw NotFound. */
@@ -24,13 +22,4 @@ export function requireRoom(store: Store, roomId: RoomId): Room {
     throw new NotFoundError('Room not found.');
   }
   return room;
-}
-
-/** Resolve a template by id, or throw NotFound. */
-export function requireTemplate(templates: TemplateRegistry, templateId: string): Template {
-  const template = templates.get(templateId);
-  if (!template) {
-    throw new NotFoundError(`Unknown template: ${templateId}`);
-  }
-  return template;
 }

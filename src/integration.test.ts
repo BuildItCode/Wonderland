@@ -3,7 +3,6 @@ import type { AddressInfo } from 'node:net';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { openDatabase, createStore } from './store/index.js';
-import { createTemplateRegistry } from './templates/index.js';
 import { createEngine } from './engine/index.js';
 import { createHubServer } from './transport/index.js';
 
@@ -21,7 +20,7 @@ interface CreateRoomResponse {
 describe('real stack over Streamable HTTP', () => {
   it('creates a room, resolves a link, and joins through MCP', async () => {
     const db = openDatabase(':memory:');
-    const app = createHubServer(createEngine({ store: createStore(db), templates: createTemplateRegistry() }));
+    const app = createHubServer(createEngine({ store: createStore(db) }));
     const httpServer = app.listen(0);
     await new Promise<void>((resolve) => httpServer.once('listening', resolve));
     const { port } = httpServer.address() as AddressInfo;
@@ -35,11 +34,11 @@ describe('real stack over Streamable HTTP', () => {
           name: 'create_room',
           arguments: {
             task: 'integrate payments',
-            templateId: 'api-negotiation',
+            facilitation: 'agent',
             parties: [
               { team: 'platform', role: 'facilitator' },
-              { team: 'A', role: 'contractor' },
-              { team: 'B', role: 'contractor' },
+              { team: 'A', role: 'participant' },
+              { team: 'B', role: 'participant' },
             ],
           },
         }),
@@ -47,22 +46,22 @@ describe('real stack over Streamable HTTP', () => {
     ) as CreateRoomResponse;
     expect(created.links).toHaveLength(3);
 
-    const contractor = created.links.find((l) => l.team === 'A');
-    expect(contractor).toBeDefined();
-    const token = contractor!.token;
+    const participant = created.links.find((l) => l.team === 'A');
+    expect(participant).toBeDefined();
+    const token = participant!.token;
 
     const briefing = JSON.parse(textOf(await client.callTool({ name: 'resolve_link', arguments: { token } }))) as {
       yourRole: string;
       attendees: unknown[];
     };
-    expect(briefing.yourRole).toBe('contractor');
+    expect(briefing.yourRole).toBe('participant');
     expect(briefing.attendees).toHaveLength(3);
 
     const joined = JSON.parse(textOf(await client.callTool({ name: 'join', arguments: { token } }))) as {
       participantId: string;
-      phase: string;
+      status: string;
     };
-    expect(joined.phase).toBe('frame');
+    expect(joined.status).toBe('open');
     expect(joined.participantId).toBeTruthy();
 
     await client.close();
@@ -72,9 +71,9 @@ describe('real stack over Streamable HTTP', () => {
     db.close();
   });
 
-  it('resumes the same identity on a fresh connection using the same link (AC9)', async () => {
+  it('resumes the same identity on a fresh connection using the same link', async () => {
     const db = openDatabase(':memory:');
-    const app = createHubServer(createEngine({ store: createStore(db), templates: createTemplateRegistry() }));
+    const app = createHubServer(createEngine({ store: createStore(db) }));
     const httpServer = app.listen(0);
     await new Promise<void>((resolve) => httpServer.once('listening', resolve));
     const { port } = httpServer.address() as AddressInfo;
@@ -89,10 +88,10 @@ describe('real stack over Streamable HTTP', () => {
           name: 'create_room',
           arguments: {
             task: 'integrate payments',
-            templateId: 'api-negotiation',
+            facilitation: 'agent',
             parties: [
               { team: 'platform', role: 'facilitator' },
-              { team: 'A', role: 'contractor' },
+              { team: 'A', role: 'participant' },
             ],
           },
         }),
@@ -104,7 +103,7 @@ describe('real stack over Streamable HTTP', () => {
     };
     await first.callTool({
       name: 'post',
-      arguments: { token, act: 'inform', payload: { kind: 'note', text: 'checkpoint' } },
+      arguments: { token, act: 'say', payload: { text: 'checkpoint' } },
     });
     await first.close();
 

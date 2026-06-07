@@ -5,10 +5,8 @@
  */
 export * from './ids.js';
 export * from './enums.js';
-export * from './contract.js';
 export * from './speech-acts.js';
 export * from './room.js';
-export * from './template.js';
 export * from './ports.js';
 export * from './errors.js';
 export * from './service.js';

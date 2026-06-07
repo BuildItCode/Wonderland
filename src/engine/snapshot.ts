@@ -1,12 +1,7 @@
-import type { RoomSnapshot, TemplateMeta } from '../domain/index.js';
-import { toTemplateMeta } from '../templates/index.js';
+import type { ProposalView, RoomSnapshot } from '../domain/index.js';
 import type { EngineDeps } from './deps.js';
 import { requireParticipant, requireRoom } from './guards.js';
-
-/** List available templates as public metadata. */
-export function listTemplates(deps: EngineDeps): TemplateMeta[] {
-  return deps.templates.list().map(toTemplateMeta);
-}
+import { pendingParticipants, stances } from './consensus.js';
 
 /** Compose a read-only snapshot of room state (does not require an open room). */
 export function roomSnapshot(deps: EngineDeps, token: string): RoomSnapshot {
@@ -18,22 +13,27 @@ export function roomSnapshot(deps: EngineDeps, token: string): RoomSnapshot {
     role: participant.role,
     status: participant.status,
   }));
-  const latest = deps.store.contracts.getLatest(room.id);
-  const contract = latest
+  const { proposal, byParticipant } = stances(deps, room);
+  const proposalView: ProposalView | null = proposal
     ? {
-        version: latest.version,
-        proposedBy: latest.proposedBy,
-        signatures: latest.signatures,
+        version: proposal.version,
+        by: proposal.by,
+        title: proposal.title,
+        text: proposal.text,
+        agreed: [...byParticipant].filter(([, s]) => s === 'agree').map(([id]) => id),
+        blocked: [...byParticipant].filter(([, s]) => s === 'block').map(([id]) => id),
       }
     : null;
   return {
     roomId: room.id,
     task: room.task,
-    phase: room.phase,
+    facilitation: room.facilitation,
+    status: room.status,
     round: room.round,
     summary: room.summary,
     outcome: room.outcome,
     participants,
-    contract,
+    proposal: proposalView,
+    pending: pendingParticipants(deps, room),
   };
 }

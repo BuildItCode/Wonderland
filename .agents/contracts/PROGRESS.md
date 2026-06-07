@@ -135,6 +135,18 @@ _Created: 2026-06-03_
 - Visual: none
 - Notes: Kept api-negotiation + api-negotiation-auto (both live-proven). Removed the verify feature entirely (tool surface 13 → 12). 86 tests green.
 
+## 2026-06-07 — Collapsed templates to one flow + facilitation flag ✓
+- Milestone: post-M3 simplification
+- Files: src/domain/{enums,room,service,template}.ts; src/templates/{api-negotiation,index}.ts (deleted api-negotiation-auto.ts); src/store/{schema,db,room-repository}.ts (facilitation column + ensureColumn migration); src/engine/{lifecycle,auto-facilitate,briefing-text,snapshot,hub-engine}.ts; src/transport/{tools,rest}.ts + public/index.html; CONNECTING.md, ARCH.md, SPEC.md; ~12 test files updated
+- Visual: none
+- Notes: One built-in flow; `create_room` selects facilitation (`auto` default / `agent`) instead of a template. `Template.autoFacilitate` → per-room `room.facilitation`; `listTemplates` + REST `/templates` removed; console picker swapped for a facilitation selector. Tool surface unchanged (12). 85 tests green; live auto-room run reached `ratified` with no facilitator and no template choice.
+
+## 2026-06-07 — Full collapse to free-form propose/agree ✓
+- Milestone: post-M3 redesign (replaces the phase/contract model)
+- Files: rewrote src/domain/{enums,speech-acts,room,service,ports,index}.ts (deleted contract.ts, template.ts); src/store/{schema,db,room-repository,message-repository,index}.ts (deleted contract-repository.ts); rewrote src/engine/{consensus,lifecycle,messaging,closing,doc,auto-facilitate,briefing-text,snapshot,notes,guards,hub-engine,deps,index}.ts (deleted phase.ts, regression.ts); src/transport/{tools,rest,public/index.html}; deleted src/templates/; rewrote all tests (deleted phase/regression/templates/contract tests); SPEC.md, ARCH.md, CONNECTING.md
+- Visual: none
+- Notes: Acts are propose/agree/block/say; consensus derived from the transcript (latest propose + per-participant agree/block); no phases, contracts, signatures, or advance/regress. Room closes resolved on unanimous agreement (auto: hub; agent: facilitator declare) or unsolvable (block/declare, or auto proposal cap). Role contractor→participant. Tool surface 12→10. 60 tests green; live auto "1+1" room closes resolved. Fixes the stalled-room repro (agents had posted prose agreement that the old contract gate ignored).
+
 <!-- Auto-populated by build and validate phases -->
 
 ---

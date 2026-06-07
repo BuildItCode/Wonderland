@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase, createStore } from '../store/index.js';
-import { createTemplateRegistry } from '../templates/index.js';
 import { createEngine, type IdGenerator } from './index.js';
 import type { RoleLink, Store } from '../domain/index.js';
 import { HubEngine } from './hub-engine.js';
@@ -34,12 +33,7 @@ function tokenFor(links: RoleLink[], team: string): string {
 beforeEach(() => {
   db = openDatabase(':memory:');
   store = createStore(db);
-  engine = createEngine({
-    store,
-    templates: createTemplateRegistry(),
-    clock: { now: () => 1000 },
-    ids: seqIdGenerator(),
-  });
+  engine = createEngine({ store, clock: { now: () => 1000 }, ids: seqIdGenerator() });
 });
 
 afterEach(() => {
@@ -47,60 +41,54 @@ afterEach(() => {
 });
 
 describe('auto-facilitation (no LLM, no facilitator)', () => {
-  it('runs a room to a ratified close driven only by the hub', () => {
+  it('closes a room as resolved the instant every participant agrees', () => {
     const { links } = engine.createRoom({
       task: 'Calculate 1 + 1',
-      templateId: 'api-negotiation-auto',
+      facilitation: 'auto',
       parties: [
-        { team: 'Claude', role: 'contractor' },
-        { team: 'ChatGPT', role: 'contractor' },
+        { team: 'Claude', role: 'participant' },
+        { team: 'ChatGPT', role: 'participant' },
       ],
     });
     const a = tokenFor(links, 'Claude');
     const b = tokenFor(links, 'ChatGPT');
 
     engine.join(a);
-    // when the last contractor joins, the hub auto-advances frame -> propose
-    expect(engine.join(b).phase).toBe('propose');
-
-    engine.post(a, 'propose', { body: { title: 'sum', interface: 'add(1,1) -> 2' } });
-    engine.post(a, 'accept', { version: 1 });
-    // second signature completes consensus -> hub auto-advances propose -> implement
-    engine.post(b, 'accept', { version: 1 });
-    expect(store.rooms.get('r1')?.phase).toBe('implement');
-
-    engine.setStatus(a, 'done');
-    // last "done" -> hub advances to ratify and auto-declares
-    engine.setStatus(b, 'done');
+    engine.join(b);
+    engine.post(a, 'propose', { title: 'sum', text: '1 + 1 = 2' });
+    engine.post(a, 'agree', {});
+    // the second agreement completes consensus → the hub closes the room
+    engine.post(b, 'agree', {});
 
     const room = store.rooms.get('r1');
-    expect(room?.phase).toBe('closed');
-    expect(room?.outcome).toBe('ratified');
-    expect(engine.readDoc(a).doc).toContain('ratified');
+    expect(room?.status).toBe('closed');
+    expect(room?.outcome).toBe('resolved');
+    expect(engine.readDoc(a).doc).toContain('resolved');
   });
 
   it('allows an auto room with no facilitator', () => {
     expect(() =>
       engine.createRoom({
         task: 't',
-        templateId: 'api-negotiation-auto',
-        parties: [{ team: 'A', role: 'contractor' }],
+        facilitation: 'auto',
+        parties: [{ team: 'A', role: 'participant' }],
       }),
     ).not.toThrow();
   });
 
-  it('does not auto-advance a non-auto template', () => {
+  it('does not auto-close an agent-facilitated room even when all agree', () => {
     const { links } = engine.createRoom({
       task: 't',
-      templateId: 'api-negotiation',
+      facilitation: 'agent',
       parties: [
         { team: 'platform', role: 'facilitator' },
-        { team: 'A', role: 'contractor' },
-        { team: 'B', role: 'contractor' },
+        { team: 'A', role: 'participant' },
+        { team: 'B', role: 'participant' },
       ],
     });
-    engine.join(tokenFor(links, 'platform'));
-    engine.join(tokenFor(links, 'A'));
-    expect(engine.join(tokenFor(links, 'B')).phase).toBe('frame');
+    engine.post(tokenFor(links, 'A'), 'propose', { text: 'plan' });
+    engine.post(tokenFor(links, 'A'), 'agree', {});
+    engine.post(tokenFor(links, 'B'), 'agree', {});
+    expect(store.rooms.get('r1')?.status).toBe('open');
   });
 });

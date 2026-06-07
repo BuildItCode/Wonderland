@@ -16,7 +16,6 @@ interface MessageRow {
   ts: number;
   act: string;
   payload: string;
-  ref_version: number | null;
 }
 
 function toMessage(row: MessageRow): Message {
@@ -24,7 +23,6 @@ function toMessage(row: MessageRow): Message {
     id: row.id,
     from: row.from_id,
     ts: row.ts,
-    refVersion: row.ref_version ?? undefined,
     act: row.act,
     payload: JSON.parse(row.payload),
   });
@@ -37,18 +35,10 @@ export class SqliteMessageRepository implements MessageRepository {
   append(roomId: RoomId, message: Message): void {
     this.db
       .prepare(
-        `INSERT INTO messages (id, room_id, from_id, ts, act, payload, ref_version)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO messages (id, room_id, from_id, ts, act, payload)
+         VALUES (?, ?, ?, ?, ?, ?)`,
       )
-      .run(
-        message.id,
-        roomId,
-        message.from,
-        message.ts,
-        message.act,
-        JSON.stringify(message.payload),
-        message.refVersion ?? null,
-      );
+      .run(message.id, roomId, message.from, message.ts, message.act, JSON.stringify(message.payload));
   }
 
   listSince(roomId: RoomId, sinceId?: MessageId): Message[] {

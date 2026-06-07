@@ -1,9 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase, createStore } from '../store/index.js';
-import { createTemplateRegistry } from '../templates/index.js';
 import { createEngine, type IdGenerator } from './index.js';
-import type { CreateRoomInput, RoleLink, Store } from '../domain/index.js';
+import type { RoleLink, Store } from '../domain/index.js';
 import { HubEngine } from './hub-engine.js';
 
 function seqIdGenerator(): IdGenerator {
@@ -19,10 +18,14 @@ function seqIdGenerator(): IdGenerator {
   };
 }
 
-const parties: CreateRoomInput['parties'] = [
-  { team: 'platform', role: 'facilitator' },
-  { team: 'A', role: 'contractor' },
-  { team: 'B', role: 'contractor' },
+const agentParties = [
+  { team: 'platform', role: 'facilitator' as const },
+  { team: 'A', role: 'participant' as const },
+  { team: 'B', role: 'participant' as const },
+];
+const autoParties = [
+  { team: 'C', role: 'participant' as const },
+  { team: 'D', role: 'participant' as const },
 ];
 
 let db: DatabaseSync;
@@ -40,12 +43,7 @@ function tokenFor(links: RoleLink[], team: string): string {
 beforeEach(() => {
   db = openDatabase(':memory:');
   store = createStore(db);
-  engine = createEngine({
-    store,
-    templates: createTemplateRegistry(),
-    clock: { now: () => 1000 },
-    ids: seqIdGenerator(),
-  });
+  engine = createEngine({ store, clock: { now: () => 1000 }, ids: seqIdGenerator() });
 });
 
 afterEach(() => {
@@ -54,37 +52,37 @@ afterEach(() => {
 
 describe('multiple rooms on one hub', () => {
   it('keeps rooms isolated and scopes tokens to their own room', () => {
-    const roomA = engine.createRoom({ task: 'integrate payments', templateId: 'api-negotiation', parties });
-    const roomB = engine.createRoom({ task: 'debug settlement', templateId: 'api-negotiation-auto', parties });
+    const roomA = engine.createRoom({ task: 'integrate payments', facilitation: 'agent', parties: agentParties });
+    const roomB = engine.createRoom({ task: 'debug settlement', facilitation: 'auto', parties: autoParties });
     expect(roomA.roomId).not.toBe(roomB.roomId);
 
-    // drive room A only
-    engine.advancePhase(tokenFor(roomA.links, 'platform'));
-    engine.post(tokenFor(roomA.links, 'A'), 'propose', { body: { title: 'v1', interface: 'POST /charges' } });
-    engine.post(tokenFor(roomA.links, 'A'), 'accept', { version: 1 });
-    engine.post(tokenFor(roomA.links, 'B'), 'accept', { version: 1 });
+    // drive room A only (agent room: stays open, but consensus is tracked)
+    engine.post(tokenFor(roomA.links, 'A'), 'propose', { text: 'charges API' });
+    engine.post(tokenFor(roomA.links, 'A'), 'agree', {});
+    engine.post(tokenFor(roomA.links, 'B'), 'agree', {});
 
     const a = engine.roomSnapshot(tokenFor(roomA.links, 'platform'));
-    const b = engine.roomSnapshot(tokenFor(roomB.links, 'platform'));
+    const b = engine.roomSnapshot(tokenFor(roomB.links, 'C'));
 
-    expect(a.phase).toBe('propose');
-    expect(a.contract?.version).toBe(1);
+    expect(a.proposal?.version).toBe(1);
+    expect(a.pending).toEqual([]);
     // room B is untouched
-    expect(b.phase).toBe('frame');
     expect(b.round).toBe(0);
-    expect(b.contract).toBeNull();
+    expect(b.proposal).toBeNull();
+    expect(b.status).toBe('open');
   });
 
-  it('resolves each token to its own room and template', () => {
-    const roomA = engine.createRoom({ task: 'integrate payments', templateId: 'api-negotiation', parties });
-    const roomB = engine.createRoom({ task: 'debug settlement', templateId: 'api-negotiation-auto', parties });
+  it('resolves each token to its own room and facilitation mode', () => {
+    const roomA = engine.createRoom({ task: 'integrate payments', facilitation: 'agent', parties: agentParties });
+    const roomB = engine.createRoom({ task: 'debug settlement', facilitation: 'auto', parties: autoParties });
 
     const fromA = engine.resolveLink(tokenFor(roomA.links, 'A'));
-    const fromB = engine.resolveLink(tokenFor(roomB.links, 'A'));
+    const fromB = engine.resolveLink(tokenFor(roomB.links, 'C'));
 
     expect(fromA.roomId).toBe(roomA.roomId);
-    expect(fromA.template.id).toBe('api-negotiation');
+    expect(fromA.facilitation).toBe('agent');
     expect(fromB.roomId).toBe(roomB.roomId);
-    expect(fromB.template.id).toBe('api-negotiation-auto');
+    expect(fromB.facilitation).toBe('auto');
+    expect(fromA.roomId).not.toBe(fromB.roomId);
   });
 });

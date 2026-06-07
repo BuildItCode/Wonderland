@@ -1,15 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import type { AddressInfo } from 'node:net';
 import { openDatabase, createStore } from '../store/index.js';
-import { createTemplateRegistry } from '../templates/index.js';
 import { createEngine } from '../engine/index.js';
 import { createHubServer } from './index.js';
 
 async function boot(): Promise<{ base: string; stop: () => Promise<void> }> {
   const db = openDatabase(':memory:');
-  const app = createHubServer(
-    createEngine({ store: createStore(db), templates: createTemplateRegistry() }),
-  );
+  const app = createHubServer(createEngine({ store: createStore(db) }));
   const server = app.listen(0);
   await new Promise<void>((resolve) => server.once('listening', resolve));
   const { port } = server.address() as AddressInfo;
@@ -32,32 +29,24 @@ async function post(base: string, path: string, body: unknown): Promise<Response
 }
 
 describe('REST façade', () => {
-  it('lists templates', async () => {
-    const { base, stop } = await boot();
-    const res = await fetch(base + '/api/templates');
-    const templates = (await res.json()) as Array<{ id: string }>;
-    expect(templates.map((t) => t.id).sort()).toEqual(['api-negotiation', 'api-negotiation-auto']);
-    await stop();
-  });
-
   it('creates a room, joins, and snapshots', async () => {
     const { base, stop } = await boot();
     const created = (await (
       await post(base, '/api/rooms', {
         task: 'integrate payments',
-        templateId: 'api-negotiation',
+        facilitation: 'agent',
         parties: [
           { team: 'platform', role: 'facilitator' },
-          { team: 'A', role: 'contractor' },
-          { team: 'B', role: 'contractor' },
+          { team: 'A', role: 'participant' },
+          { team: 'B', role: 'participant' },
         ],
       })
     ).json()) as { links: Array<{ token: string; team: string }> };
     expect(created.links).toHaveLength(3);
 
     const token = created.links.find((l) => l.team === 'A')!.token;
-    const joined = (await (await post(base, '/api/join', { token })).json()) as { phase: string };
-    expect(joined.phase).toBe('frame');
+    const joined = (await (await post(base, '/api/join', { token })).json()) as { status: string };
+    expect(joined.status).toBe('open');
 
     const snap = (await (await post(base, '/api/snapshot', { token })).json()) as {
       participants: unknown[];

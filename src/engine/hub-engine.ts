@@ -1,5 +1,4 @@
 import type {
-  AdvanceResult,
   Briefing,
   CreateRoomInput,
   CreateRoomResult,
@@ -9,21 +8,16 @@ import type {
   MyState,
   HubService,
   Outcome,
-  Phase,
   PostResult,
   Presence,
-  RegressResult,
   RoomSnapshot,
   SpeechActType,
-  TemplateMeta,
 } from '../domain/index.js';
 import type { EngineDeps } from './deps.js';
 import { createRoom, join, resolveLink } from './lifecycle.js';
 import { myState, post, readRoom, setStatus } from './messaging.js';
-import { advancePhase } from './phase.js';
-import { regressPhase } from './regression.js';
 import { declare, readDoc, updateSummary } from './closing.js';
-import { listTemplates, roomSnapshot } from './snapshot.js';
+import { roomSnapshot } from './snapshot.js';
 
 /**
  * Public facade over the engine operations. Holds the injected dependencies and
@@ -42,14 +36,14 @@ export class HubEngine implements HubService {
     return resolveLink(this.deps, token);
   }
 
-  /** Bind identity and return the room snapshot. */
+  /** Bind identity and return the room view. */
   join(token: string): JoinResult {
     return join(this.deps, token);
   }
 
   /** Append a typed speech act. */
-  post(token: string, act: SpeechActType, payload: unknown, refVersion?: number): PostResult {
-    return post(this.deps, token, act, payload, refVersion);
+  post(token: string, act: SpeechActType, payload: unknown): PostResult {
+    return post(this.deps, token, act, payload);
   }
 
   /** Update presence status. */
@@ -67,16 +61,6 @@ export class HubEngine implements HubService {
     return myState(this.deps, token);
   }
 
-  /** Advance to the next phase if consensus allows (facilitator only). */
-  advancePhase(token: string): AdvanceResult {
-    return advancePhase(this.deps, token);
-  }
-
-  /** Regress to an earlier phase, forcing re-signature (facilitator only). */
-  regressPhase(token: string, to: Phase, reason: string): RegressResult {
-    return regressPhase(this.deps, token, to, reason);
-  }
-
   /** Replace the living summary (facilitator only). */
   updateSummary(token: string, summary: string): void {
     updateSummary(this.deps, token, summary);
@@ -90,11 +74,6 @@ export class HubEngine implements HubService {
   /** Read the finalized document (any participant; survives close). */
   readDoc(token: string): { doc: string } {
     return readDoc(this.deps, token);
-  }
-
-  /** List available templates. */
-  listTemplates(): TemplateMeta[] {
-    return listTemplates(this.deps);
   }
 
   /** Read-only snapshot of room state for display. */

@@ -1,4 +1,4 @@
-import type { Store, TemplateRegistry } from '../domain/index.js';
+import type { Store } from '../domain/index.js';
 import { HubEngine } from './hub-engine.js';
 import {
   createNanoidIdGenerator,
@@ -10,7 +10,6 @@ import {
 /** Options for assembling the engine; `clock` and `ids` default to production impls. */
 export interface CreateEngineOptions {
   store: Store;
-  templates: TemplateRegistry;
   clock?: Clock;
   ids?: IdGenerator;
 }
@@ -19,7 +18,6 @@ export interface CreateEngineOptions {
 export function createEngine(options: CreateEngineOptions): HubEngine {
   return new HubEngine({
     store: options.store,
-    templates: options.templates,
     clock: options.clock ?? createSystemClock(),
     ids: options.ids ?? createNanoidIdGenerator(),
   });

@@ -1,48 +1,43 @@
 import { z } from 'zod';
 
-/** The typed speech acts agents exchange (FIPA-inspired, Contract Net negotiation). */
-export const speechActTypeSchema = z.enum([
-  'inform',
-  'propose',
-  'accept',
-  'reject',
-  'request',
-  'failure',
-]);
+/**
+ * The free-form speech acts agents exchange.
+ *
+ * `propose` puts a candidate solution forward (plain text); `agree` / `block` are a
+ * participant's stance on the current proposal; `say` is open discussion. Consensus is
+ * derived from the transcript — no contracts, signatures, or phases.
+ */
+export const speechActTypeSchema = z.enum(['propose', 'agree', 'block', 'say']);
 
 /** Union of the valid speech-act tags. */
 export type SpeechActType = z.infer<typeof speechActTypeSchema>;
 
-/** Ordered phases a room moves through; `closed` is terminal. */
-export const phaseSchema = z.enum(['frame', 'propose', 'implement', 'verify', 'ratify', 'closed']);
+/** Lifecycle of a room: `open` until it closes with an outcome. */
+export const roomStatusSchema = z.enum(['open', 'closed']);
 
-/** Union of the valid room phases. */
-export type Phase = z.infer<typeof phaseSchema>;
+/** Union of the valid room statuses. */
+export type RoomStatus = z.infer<typeof roomStatusSchema>;
 
 /** Terminal outcome recorded when a room closes. */
-export const outcomeSchema = z.enum(['ratified', 'unsolvable']);
+export const outcomeSchema = z.enum(['resolved', 'unsolvable']);
 
 /** Union of the valid terminal outcomes. */
 export type Outcome = z.infer<typeof outcomeSchema>;
 
 /** Role a participant holds in a room. */
-export const roleSchema = z.enum(['facilitator', 'contractor']);
+export const roleSchema = z.enum(['facilitator', 'participant']);
 
 /** Union of the valid participant roles. */
 export type Role = z.infer<typeof roleSchema>;
 
+/** Who drives the room: the hub itself (rule-based, no LLM) or a facilitator agent. */
+export const facilitationSchema = z.enum(['auto', 'agent']);
+
+/** Union of the valid facilitation modes. */
+export type Facilitation = z.infer<typeof facilitationSchema>;
+
 /** Presence signal a participant broadcasts so others can orchestrate async work. */
-export const presenceSchema = z.enum([
-  'invited',
-  'preparing',
-  'joined',
-  'thinking',
-  'implementing',
-  'blocked',
-  'proposing',
-  'ratified',
-  'done',
-]);
+export const presenceSchema = z.enum(['invited', 'joined', 'thinking', 'blocked', 'done']);
 
 /** Union of the valid presence states. */
 export type Presence = z.infer<typeof presenceSchema>;

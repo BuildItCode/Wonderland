@@ -1,12 +1,13 @@
-import type { Briefing, MyState, RoleLink, TemplateMeta } from './room.js';
+import type { Briefing, MyState, RoleLink } from './room.js';
 import type { Message } from './speech-acts.js';
 import type { LinkToken, MessageId, ParticipantId, RoomId } from './ids.js';
-import type { Outcome, Phase, Presence, Role, SpeechActType } from './enums.js';
+import type { Facilitation, Outcome, Presence, Role, RoomStatus, SpeechActType } from './enums.js';
 
-/** Input to create a room: the task, chosen template, and the parties to invite. */
+/** Input to create a room: the task, who drives it, and the parties to invite. */
 export interface CreateRoomInput {
   task: string;
-  templateId: string;
+  /** Who chairs the room. `auto` (default) = the hub; `agent` = a facilitator agent. */
+  facilitation?: Facilitation;
   parties: { team: string; role: Role }[];
 }
 
@@ -17,10 +18,10 @@ export interface CreateRoomResult {
   links: RoleLink[];
 }
 
-/** Result of joining: the bound participant id and the current room snapshot. */
+/** Result of joining: the bound participant id and the current room view. */
 export interface JoinResult {
   participantId: ParticipantId;
-  phase: Phase;
+  status: RoomStatus;
   summary: string;
 }
 
@@ -29,27 +30,30 @@ export interface PostResult {
   messageId: MessageId;
 }
 
-/** Result of an advance attempt: the new phase, or a consensus block listing who must still sign. */
-export type AdvanceResult = { phase: Phase } | { blocked: 'consensus'; missing: ParticipantId[] };
+/** The current proposal under consideration, with who has agreed to / blocked it. */
+export interface ProposalView {
+  version: number;
+  by: ParticipantId;
+  title?: string;
+  text: string;
+  agreed: ParticipantId[];
+  blocked: ParticipantId[];
+}
 
 /** A read-only snapshot of room state for display. */
 export interface RoomSnapshot {
   roomId: RoomId;
   task: string;
-  phase: Phase;
+  facilitation: Facilitation;
+  status: RoomStatus;
   round: number;
   summary: string;
   outcome: Outcome | null;
   participants: Array<{ id: ParticipantId; team: string; role: Role; status: Presence }>;
-  contract: {
-    version: number;
-    proposedBy: ParticipantId;
-    signatures: ParticipantId[];
-  } | null;
+  proposal: ProposalView | null;
+  /** Participants (working role) who have not yet agreed to the current proposal. */
+  pending: ParticipantId[];
 }
-
-/** Result of a regression: the phase re-opened, or an unsolvable outcome when the round cap is hit. */
-export type RegressResult = { phase: Phase } | { outcome: Outcome };
 
 /** Result of declaring an outcome: the finalized document. */
 export interface DeclareResult {
@@ -61,14 +65,14 @@ export interface DeclareResult {
  * this interface; the engine implements it. Side effects are persisted via the store.
  */
 export interface HubService {
-  /** Create a room and mint one facilitator + N contractor role-links. */
+  /** Create a room and mint one role-link per party. */
   createRoom(input: CreateRoomInput): CreateRoomResult;
   /** Read-only, pre-join briefing for a role-link token. */
   resolveLink(token: LinkToken): Briefing;
-  /** Bind the caller's stable identity and return the current room snapshot. */
+  /** Bind the caller's stable identity and return the current room view. */
   join(token: LinkToken): JoinResult;
-  /** Append a typed speech act to the transcript. */
-  post(token: LinkToken, act: SpeechActType, payload: unknown, refVersion?: number): PostResult;
+  /** Append a typed speech act (propose / agree / block / say) to the transcript. */
+  post(token: LinkToken, act: SpeechActType, payload: unknown): PostResult;
   /** Update the caller's presence status. */
   setStatus(token: LinkToken, status: Presence): void;
   /** List transcript messages, optionally only those after a cursor. */
@@ -77,16 +81,10 @@ export interface HubService {
   myState(token: LinkToken): MyState;
   /** Replace the living summary (facilitator only). */
   updateSummary(token: LinkToken, summary: string): void;
-  /** Advance to the next phase if consensus allows (facilitator only). */
-  advancePhase(token: LinkToken): AdvanceResult;
-  /** Regress to an earlier phase (facilitator only), forcing contract re-signature. */
-  regressPhase(token: LinkToken, to: Phase, reason: string): RegressResult;
   /** Close the room with an outcome and finalize the document (facilitator only). */
   declare(token: LinkToken, outcome: Outcome): DeclareResult;
   /** Read the finalized document (any participant; survives close). */
   readDoc(token: LinkToken): { doc: string };
-  /** List available templates (for selection / UX). */
-  listTemplates(): TemplateMeta[];
   /** A read-only snapshot of room state for display (works after close). */
   roomSnapshot(token: LinkToken): RoomSnapshot;
 }

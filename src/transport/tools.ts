@@ -3,8 +3,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import {
   AppError,
+  facilitationSchema,
   outcomeSchema,
-  phaseSchema,
   presenceSchema,
   roleSchema,
   speechActTypeSchema,
@@ -32,15 +32,18 @@ function run(fn: () => unknown): CallToolResult {
   }
 }
 
-/** Register the full M1 hub tool surface on an MCP server, dispatching to the service. */
+/** Register the hub tool surface on an MCP server, dispatching to the service. */
 export function registerTools(server: McpServer, service: HubService): void {
   server.registerTool(
     'create_room',
     {
-      description: 'Create a room from a task + template; returns room id, url, and role-links.',
+      description:
+        'Create a room from a task; returns room id, url, and role-links. ' +
+        'facilitation "auto" (default) = the hub chairs it, no facilitator party needed; ' +
+        '"agent" = a facilitator agent drives it (include exactly one facilitator party).',
       inputSchema: {
         task: z.string().min(1),
-        templateId: z.string().min(1),
+        facilitation: facilitationSchema.default('auto'),
         parties: z.array(z.object({ team: z.string().min(1), role: roleSchema })).min(1),
       },
     },
@@ -50,7 +53,7 @@ export function registerTools(server: McpServer, service: HubService): void {
   server.registerTool(
     'resolve_link',
     {
-      description: 'Read-only, pre-join briefing for a role-link token.',
+      description: 'Read-only, pre-join briefing for a role-link token (task, procedure, your role).',
       inputSchema: { token: z.string().min(1) },
     },
     (args) => run(() => service.resolveLink(args.token)),
@@ -59,7 +62,7 @@ export function registerTools(server: McpServer, service: HubService): void {
   server.registerTool(
     'join',
     {
-      description: 'Bind your stable identity to a role-link and return the room snapshot.',
+      description: 'Bind your stable identity to a role-link and return the current room view.',
       inputSchema: { token: z.string().min(1) },
     },
     (args) => run(() => service.join(args.token)),
@@ -69,22 +72,23 @@ export function registerTools(server: McpServer, service: HubService): void {
     'post',
     {
       description:
-        'Append a typed speech act (inform/propose/accept/reject/request/failure). ' +
+        'Append a speech act. "propose" {text, title?} puts a candidate solution forward; ' +
+        '"agree" / "block" {reason} register your stance on the current proposal; "say" {text} is discussion. ' +
+        'Agreeing in prose does not count — only propose + everyone\'s agree advances the room. ' +
         'payload is the act-specific object (or a JSON string of it).',
       inputSchema: {
         token: z.string().min(1),
         act: speechActTypeSchema,
         payload: z.union([z.string(), z.record(z.string(), z.unknown())]),
-        refVersion: z.number().int().positive().optional(),
       },
     },
-    (args) => run(() => service.post(args.token, args.act, args.payload, args.refVersion)),
+    (args) => run(() => service.post(args.token, args.act, args.payload)),
   );
 
   server.registerTool(
     'set_status',
     {
-      description: 'Update your presence status.',
+      description: 'Update your presence status (informational; does not gate consensus).',
       inputSchema: { token: z.string().min(1), status: presenceSchema },
     },
     (args) =>
@@ -106,7 +110,7 @@ export function registerTools(server: McpServer, service: HubService): void {
   server.registerTool(
     'my_state',
     {
-      description: 'One-call catch-up view: your messages, signature status, status, tasks.',
+      description: 'One-call catch-up view: your messages, your stance on the proposal, your status.',
       inputSchema: { token: z.string().min(1) },
     },
     (args) => run(() => service.myState(args.token)),
@@ -126,27 +130,11 @@ export function registerTools(server: McpServer, service: HubService): void {
   );
 
   server.registerTool(
-    'advance_phase',
-    {
-      description: 'Advance to the next phase if consensus allows (facilitator only).',
-      inputSchema: { token: z.string().min(1) },
-    },
-    (args) => run(() => service.advancePhase(args.token)),
-  );
-
-  server.registerTool(
-    'regress_phase',
-    {
-      description: 'Regress to an earlier phase, forcing contract re-signature (facilitator only).',
-      inputSchema: { token: z.string().min(1), to: phaseSchema, reason: z.string().min(1) },
-    },
-    (args) => run(() => service.regressPhase(args.token, args.to, args.reason)),
-  );
-
-  server.registerTool(
     'declare',
     {
-      description: 'Close the room with an outcome and finalize the doc (facilitator only).',
+      description:
+        'Close the room with an outcome and finalize the doc (facilitator only). ' +
+        '"resolved" requires every participant to have agreed; "unsolvable" may be declared anytime.',
       inputSchema: { token: z.string().min(1), outcome: outcomeSchema },
     },
     (args) => run(() => service.declare(args.token, args.outcome)),

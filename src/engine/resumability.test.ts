@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase, createStore } from '../store/index.js';
-import { createTemplateRegistry } from '../templates/index.js';
 import { createEngine, type IdGenerator } from './index.js';
 import type { RoleLink, Store } from '../domain/index.js';
 import { HubEngine } from './hub-engine.js';
@@ -35,19 +34,14 @@ function tokenFor(team: string): string {
 beforeEach(() => {
   db = openDatabase(':memory:');
   store = createStore(db);
-  engine = createEngine({
-    store,
-    templates: createTemplateRegistry(),
-    clock: { now: () => 1000 },
-    ids: seqIdGenerator(),
-  });
+  engine = createEngine({ store, clock: { now: () => 1000 }, ids: seqIdGenerator() });
   links = engine.createRoom({
     task: 'integrate payments',
-    templateId: 'api-negotiation',
+    facilitation: 'agent',
     parties: [
       { team: 'platform', role: 'facilitator' },
-      { team: 'A', role: 'contractor' },
-      { team: 'B', role: 'contractor' },
+      { team: 'A', role: 'participant' },
+      { team: 'B', role: 'participant' },
     ],
   }).links;
 });
@@ -56,48 +50,25 @@ afterEach(() => {
   db.close();
 });
 
-describe('my_state catch-up (AC6, AC9)', () => {
+describe('my_state catch-up (resume after disconnect)', () => {
   it('reconstructs the same identity, status, and messages on reconnect', () => {
     const a = tokenFor('A');
     const joined = engine.join(a);
-    engine.setStatus(a, 'implementing');
-    engine.post(a, 'inform', { kind: 'capability', service: 'payments', surface: 'POST /charges' });
+    engine.setStatus(a, 'thinking');
+    engine.post(a, 'say', { text: 'checkpoint' });
 
     // a fresh call with the same link behaves like a reconnect
     const state = engine.myState(a);
     expect(state.me).toBe(joined.participantId);
-    expect(state.status).toBe('implementing');
+    expect(state.status).toBe('thinking');
     expect(state.myMessages.map((m) => m.id)).toEqual(['m1']);
-    expect(state.signedVersion).toBeNull();
-    expect(state.assignedTasks).toEqual([]);
+    expect(state.stance).toBe('none');
   });
 
-  it('surfaces signed version and assigned tasks once the contractor commits', () => {
+  it('surfaces the agree stance once the participant agrees to the current proposal', () => {
     const a = tokenFor('A');
-    store.rooms.setPhase('r1', 'propose');
-    engine.post(a, 'propose', {
-      body: {
-        title: 'Charges API',
-        interface: 'POST /charges',
-        terms: [{ key: 'idempotency', detail: 'Idempotency-Key header required' }],
-      },
-    });
-    engine.post(a, 'accept', { version: 1 });
-
-    const state = engine.myState(a);
-    expect(state.signedVersion).toBe(1);
-    expect(state.assignedTasks).toEqual(['idempotency: Idempotency-Key header required']);
-  });
-
-  it('shows no assigned tasks to a contractor who has not signed', () => {
-    const a = tokenFor('A');
-    const b = tokenFor('B');
-    store.rooms.setPhase('r1', 'propose');
-    engine.post(a, 'propose', {
-      body: { title: 'v1', interface: 'x', terms: [{ key: 'k', detail: 'd' }] },
-    });
-    engine.post(a, 'accept', { version: 1 });
-
-    expect(engine.myState(b).assignedTasks).toEqual([]);
+    engine.post(a, 'propose', { text: 'Charges API: POST /charges' });
+    engine.post(a, 'agree', {});
+    expect(engine.myState(a).stance).toBe('agree');
   });
 });

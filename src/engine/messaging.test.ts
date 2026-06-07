@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase, createStore } from '../store/index.js';
-import { createTemplateRegistry } from '../templates/index.js';
 import { createEngine, type IdGenerator } from './index.js';
 import type { RoleLink, Store } from '../domain/index.js';
 import { HubEngine } from './hub-engine.js';
@@ -35,19 +34,15 @@ function tokenFor(team: string): string {
 beforeEach(() => {
   db = openDatabase(':memory:');
   store = createStore(db);
-  engine = createEngine({
-    store,
-    templates: createTemplateRegistry(),
-    clock: { now: () => 1000 },
-    ids: seqIdGenerator(),
-  });
+  engine = createEngine({ store, clock: { now: () => 1000 }, ids: seqIdGenerator() });
+  // an agent room never auto-closes, so consensus state can be inspected mid-flight
   links = engine.createRoom({
     task: 'integrate payments',
-    templateId: 'api-negotiation',
+    facilitation: 'agent',
     parties: [
       { team: 'platform', role: 'facilitator' },
-      { team: 'A', role: 'contractor' },
-      { team: 'B', role: 'contractor' },
+      { team: 'A', role: 'participant' },
+      { team: 'B', role: 'participant' },
     ],
   }).links;
 });
@@ -56,34 +51,54 @@ afterEach(() => {
   db.close();
 });
 
-describe('post — phase gating (AC4)', () => {
-  it('accepts a capability inform in the frame phase', () => {
-    const result = engine.post(tokenFor('A'), 'inform', {
-      kind: 'capability',
-      service: 'payments',
-      surface: 'POST /charges',
-    });
-    expect(result.messageId).toBe('m1');
-  });
-
-  it('rejects an act not allowed in the current phase', () => {
-    expect(() =>
-      engine.post(tokenFor('A'), 'propose', { body: { title: 'v1', interface: 'x' } }),
-    ).toThrow(/not allowed in phase 'frame'/);
+describe('post — speech acts', () => {
+  it('records a say then a propose, bumping the round', () => {
+    expect(engine.post(tokenFor('A'), 'say', { text: 'ready' }).messageId).toBe('m1');
+    engine.post(tokenFor('A'), 'propose', { title: 'sum', text: '1 + 1 = 2' });
+    expect(store.rooms.get('r1')?.round).toBe(1);
   });
 
   it('rejects a malformed payload', () => {
-    expect(() => engine.post(tokenFor('A'), 'inform', { kind: 'capability' })).toThrow(
-      /Invalid inform/,
-    );
+    expect(() => engine.post(tokenFor('A'), 'propose', {})).toThrow(/Invalid propose/);
+    expect(() => engine.post(tokenFor('A'), 'block', {})).toThrow(/Invalid block/);
+  });
+
+  it('accepts a JSON-string payload (some MCP clients stringify it)', () => {
+    const id = engine.post(tokenFor('A'), 'say', JSON.stringify({ text: 'hi' })).messageId;
+    expect(engine.readRoom(tokenFor('A')).find((m) => m.id === id)?.act).toBe('say');
+  });
+});
+
+describe('my_state — stance on the current proposal', () => {
+  it('reflects agree and block, and resets when a new proposal supersedes', () => {
+    engine.post(tokenFor('A'), 'propose', { text: 'plan v1' });
+    engine.post(tokenFor('A'), 'agree', {});
+    engine.post(tokenFor('B'), 'block', { reason: 'needs retries' });
+    expect(engine.myState(tokenFor('A')).stance).toBe('agree');
+    expect(engine.myState(tokenFor('B')).stance).toBe('block');
+
+    // a fresh proposal clears every stance
+    engine.post(tokenFor('B'), 'propose', { text: 'plan v2 with retries' });
+    expect(engine.myState(tokenFor('A')).stance).toBe('none');
+    expect(engine.myState(tokenFor('B')).stance).toBe('none');
+  });
+});
+
+describe('snapshot — pending + agreement', () => {
+  it('tracks who still needs to agree', () => {
+    engine.post(tokenFor('A'), 'propose', { text: 'plan' });
+    engine.post(tokenFor('A'), 'agree', {});
+    const snap = engine.roomSnapshot(tokenFor('platform'));
+    expect(snap.proposal?.version).toBe(1);
+    expect(snap.proposal?.agreed).toEqual(['p2']);
+    expect(snap.pending).toEqual(['p3']);
   });
 });
 
 describe('read_room — delta cursor', () => {
   it('returns only messages after the cursor', () => {
-    const first = engine.post(tokenFor('A'), 'inform', { kind: 'note', text: 'one' });
-    engine.post(tokenFor('B'), 'inform', { kind: 'note', text: 'two' });
-
+    const first = engine.post(tokenFor('A'), 'say', { text: 'one' });
+    engine.post(tokenFor('B'), 'say', { text: 'two' });
     expect(engine.readRoom(tokenFor('A')).map((m) => m.id)).toEqual(['m1', 'm2']);
     expect(engine.readRoom(tokenFor('A'), first.messageId).map((m) => m.id)).toEqual(['m2']);
   });
@@ -91,31 +106,14 @@ describe('read_room — delta cursor', () => {
 
 describe('set_status', () => {
   it('updates the caller presence', () => {
-    engine.setStatus(tokenFor('A'), 'implementing');
-    expect(engine.myState(tokenFor('A')).status).toBe('implementing');
+    engine.setStatus(tokenFor('A'), 'thinking');
+    expect(engine.myState(tokenFor('A')).status).toBe('thinking');
   });
 });
 
-describe('contract side effects', () => {
-  beforeEach(() => {
-    store.rooms.setPhase('r1', 'propose');
-  });
-
-  it('propose creates a new contract version', () => {
-    engine.post(tokenFor('A'), 'propose', { body: { title: 'v1', interface: 'POST /charges' } });
-    const latest = store.contracts.getLatest('r1');
-    expect(latest).toMatchObject({ version: 1, proposedBy: 'p2' });
-  });
-
-  it('accept signs the referenced version and surfaces in my_state', () => {
-    engine.post(tokenFor('A'), 'propose', { body: { title: 'v1', interface: 'x' } });
-    engine.post(tokenFor('A'), 'accept', { version: 1 });
-    expect(engine.myState(tokenFor('A')).signedVersion).toBe(1);
-  });
-
-  it('rejects accepting a non-existent version', () => {
-    expect(() => engine.post(tokenFor('A'), 'accept', { version: 99 })).toThrow(
-      /No contract version 99/,
-    );
+describe('closed room', () => {
+  it('rejects posting after the room is declared', () => {
+    engine.declare(tokenFor('platform'), 'unsolvable');
+    expect(() => engine.post(tokenFor('A'), 'say', { text: 'late' })).toThrow(/closed/);
   });
 });

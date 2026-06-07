@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { openDatabase, createStore } from '../store/index.js';
-import { createTemplateRegistry } from '../templates/index.js';
 import { createEngine, type IdGenerator } from './index.js';
 import type { RoleLink, Store } from '../domain/index.js';
 import { HubEngine } from './hub-engine.js';
@@ -35,19 +34,14 @@ function tokenFor(team: string): string {
 beforeEach(() => {
   db = openDatabase(':memory:');
   store = createStore(db);
-  engine = createEngine({
-    store,
-    templates: createTemplateRegistry(),
-    clock: { now: () => 1000 },
-    ids: seqIdGenerator(),
-  });
+  engine = createEngine({ store, clock: { now: () => 1000 }, ids: seqIdGenerator() });
   links = engine.createRoom({
-    task: 'Checkout needs to charge cards and receive payment events',
-    templateId: 'api-negotiation',
+    task: 'integrate payments',
+    facilitation: 'agent',
     parties: [
       { team: 'platform', role: 'facilitator' },
-      { team: 'A', role: 'contractor' },
-      { team: 'B', role: 'contractor' },
+      { team: 'A', role: 'participant' },
+      { team: 'B', role: 'participant' },
     ],
   }).links;
 });
@@ -56,8 +50,8 @@ afterEach(() => {
   db.close();
 });
 
-describe('full api-negotiation run (AC7, AC12)', () => {
-  it('reaches a ratified doc with contract + task split, then invalidates links', () => {
+describe('full agent run (resolved)', () => {
+  it('reaches a resolved doc with the agreed solution + sign-off, then invalidates links', () => {
     const fac = tokenFor('platform');
     const a = tokenFor('A');
     const b = tokenFor('B');
@@ -66,71 +60,58 @@ describe('full api-negotiation run (AC7, AC12)', () => {
     engine.join(a);
     engine.join(b);
 
-    // frame
-    engine.post(a, 'inform', { kind: 'capability', service: 'payments', surface: 'POST /charges' });
-    engine.post(b, 'inform', { kind: 'capability', service: 'checkout', surface: 'needs charge + events' });
-    engine.updateSummary(fac, 'Gap: payments webhooks are internal-only.');
-    expect(engine.advancePhase(fac)).toEqual({ phase: 'propose' });
-
-    // propose + renegotiate
+    engine.post(a, 'say', { text: 'what surface do you need?' });
     engine.post(a, 'propose', {
-      body: { title: 'Charges API', interface: 'POST /charges', terms: [] },
+      title: 'Charges API',
+      text: 'POST /charges with an Idempotency-Key header; webhooks retried 3x.',
     });
-    engine.post(b, 'reject', { version: 1, reason: 'need webhook retry policy' });
-    engine.post(a, 'propose', {
-      body: {
-        title: 'Charges API v2',
-        interface: 'POST /charges + webhooks',
-        terms: [
-          { key: 'idempotency', detail: 'Idempotency-Key header required' },
-          { key: 'retry', detail: 'webhooks retried 3x with backoff' },
-        ],
-      },
-    });
-    engine.post(a, 'accept', { version: 2 });
-    engine.post(b, 'accept', { version: 2 });
-    expect(engine.advancePhase(fac)).toEqual({ phase: 'implement' });
+    engine.post(a, 'agree', {});
+    engine.post(b, 'agree', { note: 'works for checkout' });
+    engine.updateSummary(fac, 'Agreed on the charges endpoint.');
 
-    // implement
-    engine.setStatus(a, 'implementing');
-    engine.post(a, 'inform', { kind: 'result', summary: 'exposed webhook + idempotency' });
-    engine.post(b, 'inform', { kind: 'result', summary: 'charge client + webhook receiver' });
-    expect(engine.advancePhase(fac)).toEqual({ phase: 'ratify' });
+    const { doc } = engine.declare(fac, 'resolved');
+    expect(doc).toContain('# integrate payments — resolved');
+    expect(doc).toContain('## Agreed Solution');
+    expect(doc).toContain('Charges API');
+    expect(doc).toContain('POST /charges');
+    expect(doc).toContain('## Sign-off');
+    expect(doc).toContain('- **A**: agreed');
+    expect(doc).toContain('- **B**: agreed');
 
-    // ratify + close
-    const { doc } = engine.declare(fac, 'ratified');
-    expect(doc).toContain('Agreed Contract (v2)');
-    expect(doc).toContain('Charges API v2');
-    expect(doc).toContain('POST /charges + webhooks');
-    expect(doc).toContain('retry');
-    expect(doc).toContain('## Task Split');
-    expect(doc).toContain('- **A**');
-    expect(doc).toContain('- **B**');
-
-    // AC12: links invalidated
-    expect(store.rooms.get('r1')?.phase).toBe('closed');
-    expect(() => engine.post(a, 'inform', { kind: 'note', text: 'late' })).toThrow(/closed/);
+    // links invalidated after close
+    expect(store.rooms.get('r1')?.status).toBe('closed');
+    expect(() => engine.post(a, 'say', { text: 'late' })).toThrow(/closed/);
     expect(() => engine.join(a)).toThrow(/closed/);
-    expect(() => engine.declare(fac, 'ratified')).toThrow(/already closed/);
+    expect(() => engine.declare(fac, 'resolved')).toThrow(/already closed/);
     // read access survives for the post-mortem record
-    expect(engine.readRoom(a).length).toBeGreaterThan(0);
+    expect(engine.readDoc(a).doc).toBe(doc);
   });
 });
 
 describe('declare guards', () => {
-  it('refuses to ratify without an agreed contract', () => {
-    store.rooms.setPhase('r1', 'propose');
-    expect(() => engine.declare(tokenFor('platform'), 'ratified')).toThrow(/without an agreed/);
+  it('refuses to resolve without a proposal', () => {
+    expect(() => engine.declare(tokenFor('platform'), 'resolved')).toThrow(/Cannot resolve/);
   });
 
-  it('refuses to ratify while signatures are missing', () => {
-    store.rooms.setPhase('r1', 'propose');
-    engine.post(tokenFor('A'), 'propose', { body: { title: 'v1', interface: 'x' } });
-    engine.post(tokenFor('A'), 'accept', { version: 1 });
-    expect(() => engine.declare(tokenFor('platform'), 'ratified')).toThrow(/missing signatures/);
+  it('refuses to resolve while a participant has not agreed', () => {
+    engine.post(tokenFor('A'), 'propose', { text: 'plan' });
+    engine.post(tokenFor('A'), 'agree', {});
+    expect(() => engine.declare(tokenFor('platform'), 'resolved')).toThrow(/pending: p3/);
   });
 
-  it('rejects a non-facilitator updating the summary', () => {
+  it('allows unsolvable to be declared at any time', () => {
+    const { doc } = engine.declare(tokenFor('platform'), 'unsolvable');
+    expect(doc).toContain('— unsolvable');
+  });
+
+  it('rejects a non-facilitator declaring or updating the summary', () => {
+    expect(() => engine.declare(tokenFor('A'), 'unsolvable')).toThrow(/facilitator/);
     expect(() => engine.updateSummary(tokenFor('A'), 'sneaky')).toThrow(/facilitator/);
+  });
+});
+
+describe('readDoc', () => {
+  it('throws before a doc has been finalized', () => {
+    expect(() => engine.readDoc(tokenFor('A'))).toThrow(/No document/);
   });
 });

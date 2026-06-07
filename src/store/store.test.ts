@@ -6,8 +6,8 @@ import type { Room, Store } from '../domain/index.js';
 const ROOM: Room = {
   id: 'r1',
   task: 'integrate payments',
-  templateId: 'api-negotiation',
-  phase: 'frame',
+  facilitation: 'agent',
+  status: 'open',
   round: 0,
   summary: '',
   outcome: null,
@@ -36,18 +36,24 @@ describe('RoomRepository', () => {
     expect(store.rooms.get('nope')).toBeNull();
   });
 
-  it('updates phase, summary, round, and outcome', () => {
-    store.rooms.setPhase('r1', 'propose');
+  it('updates status, summary, round, and outcome', () => {
     store.rooms.setSummary('r1', 'gap named');
     store.rooms.setRound('r1', 2);
-    store.rooms.setOutcome('r1', 'ratified');
+    store.rooms.setOutcome('r1', 'resolved');
+    store.rooms.setStatus('r1', 'closed');
     const room = store.rooms.get('r1');
     expect(room).toMatchObject({
-      phase: 'propose',
+      status: 'closed',
       summary: 'gap named',
       round: 2,
-      outcome: 'ratified',
+      outcome: 'resolved',
     });
+  });
+
+  it('stores and reads the finalized doc', () => {
+    expect(store.rooms.getDoc('r1')).toBe('');
+    store.rooms.setDoc('r1', '# done');
+    expect(store.rooms.getDoc('r1')).toBe('# done');
   });
 });
 
@@ -60,7 +66,7 @@ describe('ParticipantRepository', () => {
     );
     store.participants.add(
       'r1',
-      { id: 'p_a', team: 'A', role: 'contractor', status: 'invited' },
+      { id: 'p_a', team: 'A', role: 'participant', status: 'invited' },
       'tok_a',
     );
   });
@@ -69,7 +75,7 @@ describe('ParticipantRepository', () => {
     expect(store.participants.getByToken('tok_a')).toEqual({
       id: 'p_a',
       team: 'A',
-      role: 'contractor',
+      role: 'participant',
       status: 'invited',
       roomId: 'r1',
     });
@@ -88,8 +94,14 @@ describe('ParticipantRepository', () => {
 
 describe('MessageRepository', () => {
   beforeEach(() => {
-    store.messages.append('r1', { id: 'm1', from: 'p_a', ts: 1, act: 'inform', payload: { kind: 'note', text: 'hi' } });
-    store.messages.append('r1', { id: 'm2', from: 'p_b', ts: 2, act: 'accept', payload: { version: 1 } });
+    store.messages.append('r1', { id: 'm1', from: 'p_a', ts: 1, act: 'say', payload: { text: 'hi' } });
+    store.messages.append('r1', {
+      id: 'm2',
+      from: 'p_b',
+      ts: 2,
+      act: 'propose',
+      payload: { text: '1 + 1 = 2' },
+    });
   });
 
   it('lists all messages in order', () => {
@@ -104,44 +116,5 @@ describe('MessageRepository', () => {
 
   it('lists a single participant own messages', () => {
     expect(store.messages.listByParticipant('r1', 'p_a').map((m) => m.id)).toEqual(['m1']);
-  });
-});
-
-describe('ContractRepository', () => {
-  beforeEach(() => {
-    store.contracts.addVersion('r1', {
-      version: 1,
-      proposedBy: 'p_a',
-      body: { title: 'v1', interface: 'POST /charges', terms: [] },
-      signatures: [],
-    });
-  });
-
-  it('round-trips a version with no signatures', () => {
-    expect(store.contracts.getVersion('r1', 1)).toEqual({
-      version: 1,
-      proposedBy: 'p_a',
-      body: { title: 'v1', interface: 'POST /charges', terms: [] },
-      signatures: [],
-    });
-  });
-
-  it('records signatures idempotently', () => {
-    store.contracts.addSignature('r1', 1, 'p_a');
-    store.contracts.addSignature('r1', 1, 'p_a');
-    store.contracts.addSignature('r1', 1, 'p_b');
-    expect(store.contracts.getVersion('r1', 1)?.signatures).toEqual(['p_a', 'p_b']);
-  });
-
-  it('tracks the latest version and supersession', () => {
-    store.contracts.addVersion('r1', {
-      version: 2,
-      proposedBy: 'p_b',
-      body: { title: 'v2', interface: 'POST /charges', terms: [] },
-      signatures: [],
-    });
-    store.contracts.markSuperseded('r1', 1, 2);
-    expect(store.contracts.getLatest('r1')?.version).toBe(2);
-    expect(store.contracts.getVersion('r1', 1)?.supersededBy).toBe(2);
   });
 });

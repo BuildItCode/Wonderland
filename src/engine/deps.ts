@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import type { Store, TemplateRegistry } from '../domain/index.js';
+import type { Store } from '../domain/index.js';
 
 /** Injectable time source — keeps the engine's logic pure and testable. */
 export interface Clock {
@@ -17,7 +17,6 @@ export interface IdGenerator {
 /** Everything the engine operations need, injected for testability. */
 export interface EngineDeps {
   store: Store;
-  templates: TemplateRegistry;
   clock: Clock;
   ids: IdGenerator;
 }

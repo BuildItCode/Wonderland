@@ -27,12 +27,11 @@ function send(res: Response, fn: () => unknown): void {
 export function createRestRouter(service: HubService): Router {
   const router = Router();
 
-  router.get('/templates', (_req, res) => send(res, () => service.listTemplates()));
   router.post('/rooms', (req, res) => send(res, () => service.createRoom(req.body)));
   router.post('/resolve', (req, res) => send(res, () => service.resolveLink(req.body.token)));
   router.post('/join', (req, res) => send(res, () => service.join(req.body.token)));
   router.post('/post', (req, res) =>
-    send(res, () => service.post(req.body.token, req.body.act, req.body.payload, req.body.refVersion)),
+    send(res, () => service.post(req.body.token, req.body.act, req.body.payload)),
   );
   router.post('/status', (req, res) =>
     send(res, () => {
@@ -48,10 +47,6 @@ export function createRestRouter(service: HubService): Router {
       service.updateSummary(req.body.token, req.body.summary);
       return { ok: true };
     }),
-  );
-  router.post('/advance', (req, res) => send(res, () => service.advancePhase(req.body.token)));
-  router.post('/regress', (req, res) =>
-    send(res, () => service.regressPhase(req.body.token, req.body.to, req.body.reason)),
   );
   router.post('/declare', (req, res) => send(res, () => service.declare(req.body.token, req.body.outcome)));
   router.post('/doc', (req, res) => send(res, () => service.readDoc(req.body.token)));

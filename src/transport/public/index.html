@@ -27,7 +27,7 @@
     .panels { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:1rem; }
     .panel { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:0.85rem; }
     .panel.facilitator { border-left:3px solid var(--warn); }
-    .panel.contractor { border-left:3px solid var(--accent); }
+    .panel.participant { border-left:3px solid var(--accent); }
     .ptitle { font-family:var(--mono); font-size:0.85rem; margin-bottom:0.25rem; }
     .inline { display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap; }
     .inline > button { flex:0 0 auto; }
@@ -72,11 +72,14 @@
     <h2>Create room</h2>
     <label>Task</label>
     <textarea id="task" style="min-height:60px">Checkout needs to charge cards and receive payment events</textarea>
-    <label>Template</label>
-    <select id="template"></select>
+    <label>Facilitation</label>
+    <select id="facilitation">
+      <option value="auto">auto — the hub chairs the room (no facilitator needed)</option>
+      <option value="agent">agent — a facilitator agent drives the room</option>
+    </select>
     <div id="parties"></div>
     <div style="margin-top:0.6rem" class="inline">
-      <button class="sec" id="addParty">+ contractor</button>
+      <button class="sec" id="addParty">+ participant</button>
       <button id="createBtn">Create room</button>
     </div>
   </div>
@@ -98,7 +101,7 @@
 
   <script>
     const $ = (s, r = document) => r.querySelector(s);
-    let TEMPLATES = [], LINKS = [], FAC = null;
+    let LINKS = [], FAC = null;
 
     function log(msg, err) {
       const el = document.createElement('div');
@@ -113,7 +116,6 @@
       if (!res.ok || (data && data.error)) throw new Error(data.error ? data.error.message : ('HTTP ' + res.status));
       return data;
     }
-    async function apiGet(path) { const res = await fetch('/api/' + path); return res.json(); }
     async function copy(text) {
       try { await navigator.clipboard.writeText(text); log('copied to clipboard'); }
       catch (e) { log('copy failed — select the text manually', true); }
@@ -125,22 +127,10 @@
       div.style.marginTop = '0.4rem';
       div.innerHTML =
         '<input class="pteam" value="' + team + '" style="flex:1" />' +
-        '<select class="prole" style="width:130px;flex:0 0 130px"><option value="facilitator">facilitator</option><option value="contractor">contractor</option></select>';
+        '<select class="prole" style="width:130px;flex:0 0 130px"><option value="participant">participant</option><option value="facilitator">facilitator</option></select>';
       $('#parties').appendChild(div);
       div.querySelector('.prole').value = role;
       return div;
-    }
-
-    async function loadTemplates() {
-      TEMPLATES = await apiGet('templates');
-      const sel = $('#template');
-      sel.innerHTML = '';
-      TEMPLATES.forEach((t) => {
-        const o = document.createElement('option');
-        o.value = t.id;
-        o.textContent = t.id + '  (' + t.phases.join(' → ') + ', exit: ' + t.exit + ')';
-        sel.appendChild(o);
-      });
     }
 
     function connectSnippet(link) {
@@ -179,13 +169,13 @@
 
     async function createRoom() {
       const task = $('#task').value.trim();
-      const templateId = $('#template').value;
+      const facilitation = $('#facilitation').value;
       const parties = [...document.querySelectorAll('.party')].map((p) => ({
         team: p.querySelector('.pteam').value.trim(),
         role: p.querySelector('.prole').value,
       }));
       try {
-        const r = await api('rooms', { task, templateId, parties });
+        const r = await api('rooms', { task, facilitation, parties });
         LINKS = r.links;
         FAC = (LINKS.find((l) => l.role === 'facilitator') || LINKS[0] || {}).token;
         log('room ' + r.roomId + ' created — hand the prompts to your agents');
@@ -195,15 +185,31 @@
       } catch (e) { log(e.message, true); }
     }
 
+    function teamName(s, id) {
+      const p = s.participants.find((x) => x.id === id);
+      return p ? p.team : id;
+    }
+
     function renderState(s) {
-      const c = s.contract;
+      const p = s.proposal;
+      const proposalHtml = p
+        ? ('v' + p.version + ' by ' + escapeHtml(teamName(s, p.by)) + (p.title ? ' — <strong>' + escapeHtml(p.title) + '</strong>' : '') +
+           '<br/>' + escapeHtml(p.text) +
+           '<br/><span class="muted">agreed: [' + p.agreed.map((id) => escapeHtml(teamName(s, id))).join(', ') + ']' +
+           (p.blocked.length ? ' · blocked: [' + p.blocked.map((id) => escapeHtml(teamName(s, id))).join(', ') + ']' : '') + '</span>')
+        : '<span class="muted">none yet</span>';
+      const pending = s.pending.map((id) => teamName(s, id));
+      const pendingHtml = s.status === 'closed'
+        ? '<span class="muted">—</span>'
+        : (pending.length ? escapeHtml(pending.join(', ')) : '<span style="color:var(--success)">all agreed</span>');
       $('#state').innerHTML =
         '<table>' +
         '<tr><th>room</th><td>' + s.roomId + '</td></tr>' +
-        '<tr><th>phase</th><td><strong style="color:var(--accent)">' + s.phase + '</strong> <span class="tag">round ' + s.round + '</span> ' + (s.outcome ? '<span class="tag">' + s.outcome + '</span>' : '') + '</td></tr>' +
+        '<tr><th>status</th><td><strong style="color:var(--accent)">' + s.status + '</strong> <span class="tag">' + s.facilitation + '</span> <span class="tag">round ' + s.round + '</span> ' + (s.outcome ? '<span class="tag">' + s.outcome + '</span>' : '') + '</td></tr>' +
         '<tr><th>task</th><td>' + escapeHtml(s.task) + '</td></tr>' +
         '<tr><th>summary</th><td>' + (s.summary ? escapeHtml(s.summary) : '<span class="muted">—</span>') + '</td></tr>' +
-        '<tr><th>contract</th><td>' + (c ? ('v' + c.version + ' by ' + c.proposedBy + '<br/>signed: [' + c.signatures.join(', ') + ']') : '<span class="muted">none yet</span>') + '</td></tr>' +
+        '<tr><th>proposal</th><td>' + proposalHtml + '</td></tr>' +
+        '<tr><th>pending</th><td>' + pendingHtml + '</td></tr>' +
         '</table>' +
         '<table style="margin-top:0.5rem"><tr><th>team</th><th>role</th><th>status</th></tr>' +
         s.participants.map((pp) => '<tr><td>' + escapeHtml(pp.team) + '</td><td>' + pp.role + '</td><td>' + pp.status + '</td></tr>').join('') +
@@ -212,7 +218,7 @@
 
     function renderTranscript(msgs) {
       $('#transcript').innerHTML = msgs.length
-        ? msgs.map((m) => '<div class="msg"><span class="act">' + m.act + '</span> <span class="muted">' + m.from + (m.refVersion ? ' · v' + m.refVersion : '') + '</span><br/>' + escapeHtml(JSON.stringify(m.payload)) + '</div>').join('')
+        ? msgs.map((m) => '<div class="msg"><span class="act">' + m.act + '</span> <span class="muted">' + m.from + '</span><br/>' + escapeHtml(JSON.stringify(m.payload)) + '</div>').join('')
         : '<span class="muted">— empty —</span>';
     }
 
@@ -224,7 +230,7 @@
       try { renderTranscript(await api('read', { token: FAC })); } catch (e) { /* transient */ }
     }
 
-    $('#addParty').onclick = () => partyRow('C', 'contractor');
+    $('#addParty').onclick = () => partyRow('C', 'participant');
     $('#createBtn').onclick = createRoom;
     $('#refreshBtn').onclick = refresh;
     $('#docBtn').onclick = async () => {
@@ -242,10 +248,8 @@
     );
     $('#copyCc').onclick = () => copy($('#cccmd').value);
     $('#copyCfg').onclick = () => copy($('#cfgjson').value);
-    partyRow('platform', 'facilitator');
-    partyRow('Claude', 'contractor');
-    partyRow('ChatGPT', 'contractor');
-    loadTemplates().catch((e) => log('templates: ' + e.message, true));
+    partyRow('Claude', 'participant');
+    partyRow('ChatGPT', 'participant');
     setInterval(refresh, 2000);
   </script>
 </body>

@@ -1,7 +1,6 @@
 import type { Room, Participant } from './room.js';
 import type { Message } from './speech-acts.js';
-import type { ContractVersion } from './contract.js';
-import type { Outcome, Phase, Presence } from './enums.js';
+import type { Outcome, Presence, RoomStatus } from './enums.js';
 import type { ParticipantId, RoomId, LinkToken, MessageId } from './ids.js';
 
 /** A participant together with the room it belongs to, returned when resolving a token. */
@@ -15,11 +14,11 @@ export interface RoomRepository {
   create(room: Room): void;
   /** Fetch a room by id, or null if it does not exist. */
   get(roomId: RoomId): Room | null;
-  /** Move a room to a new phase. */
-  setPhase(roomId: RoomId, phase: Phase): void;
+  /** Open or close the room. */
+  setStatus(roomId: RoomId, status: RoomStatus): void;
   /** Replace the room's living summary. */
   setSummary(roomId: RoomId, summary: string): void;
-  /** Update the negotiation round counter. */
+  /** Update the proposal-round counter. */
   setRound(roomId: RoomId, round: number): void;
   /** Record the terminal outcome on close. */
   setOutcome(roomId: RoomId, outcome: Outcome): void;
@@ -53,26 +52,9 @@ export interface MessageRepository {
   listByParticipant(roomId: RoomId, participantId: ParticipantId): Message[];
 }
 
-/** Persistence for versioned contracts and their signatures. */
-export interface ContractRepository {
-  /** Insert a new contract version. */
-  addVersion(roomId: RoomId, version: ContractVersion): void;
-  /** Fetch a specific version with its signatures, or null. */
-  getVersion(roomId: RoomId, version: number): ContractVersion | null;
-  /** Fetch the highest-numbered version with its signatures, or null. */
-  getLatest(roomId: RoomId): ContractVersion | null;
-  /** Record a signature (accept) on a version; idempotent per participant. */
-  addSignature(roomId: RoomId, version: number, participantId: ParticipantId): void;
-  /** Mark a version as superseded by a later one. */
-  markSuperseded(roomId: RoomId, version: number, supersededBy: number): void;
-  /** The highest contract version this participant has signed, or null. */
-  latestSignedVersion(roomId: RoomId, participantId: ParticipantId): number | null;
-}
-
 /** The full persistence surface the engine depends on. */
 export interface Store {
   rooms: RoomRepository;
   participants: ParticipantRepository;
   messages: MessageRepository;
-  contracts: ContractRepository;
 }

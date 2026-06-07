@@ -1,8 +1,10 @@
+import { fileURLToPath } from 'node:url';
 import express, { type Express } from 'express';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import type { HubService } from '../domain/index.js';
 import { registerTools } from './tools.js';
+import { createRestRouter } from './rest.js';
 
 const SERVER_INFO = { name: 'wonderland-hub', version: '0.1.0' };
 
@@ -50,6 +52,10 @@ export function createHubServer(service: HubService): Express {
   app.delete('/mcp', (_req, res) => {
     res.status(405).json(METHOD_NOT_ALLOWED);
   });
+
+  // REST façade + static test UI
+  app.use('/api', createRestRouter(service));
+  app.use(express.static(fileURLToPath(new URL('./public', import.meta.url))));
 
   return app;
 }

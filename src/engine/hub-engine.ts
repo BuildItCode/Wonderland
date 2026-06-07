@@ -13,7 +13,9 @@ import type {
   PostResult,
   Presence,
   RegressResult,
+  RoomSnapshot,
   SpeechActType,
+  TemplateMeta,
   VerifyResult,
 } from '../domain/index.js';
 import type { EngineDeps } from './deps.js';
@@ -23,6 +25,7 @@ import { advancePhase } from './phase.js';
 import { regressPhase } from './regression.js';
 import { submitVerification } from './verification.js';
 import { declare, readDoc, updateSummary } from './closing.js';
+import { listTemplates, roomSnapshot } from './snapshot.js';
 
 /**
  * Public facade over the engine operations. Holds the injected dependencies and
@@ -94,5 +97,15 @@ export class HubEngine implements HubService {
   /** Read the finalized document (any participant; survives close). */
   readDoc(token: string): { doc: string } {
     return readDoc(this.deps, token);
+  }
+
+  /** List available templates. */
+  listTemplates(): TemplateMeta[] {
+    return listTemplates(this.deps);
+  }
+
+  /** Read-only snapshot of room state for display. */
+  roomSnapshot(token: string): RoomSnapshot {
+    return roomSnapshot(this.deps, token);
   }
 }

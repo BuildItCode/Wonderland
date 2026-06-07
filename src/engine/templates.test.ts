@@ -64,7 +64,12 @@ describe('template registry', () => {
       .list()
       .map((t) => t.id)
       .sort();
-    expect(ids).toEqual(['api-negotiation', 'api-negotiation-verified', 'cross-team-debug']);
+    expect(ids).toEqual([
+      'api-negotiation',
+      'api-negotiation-auto',
+      'api-negotiation-verified',
+      'cross-team-debug',
+    ]);
   });
 });
 

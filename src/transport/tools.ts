@@ -68,11 +68,13 @@ export function registerTools(server: McpServer, service: HubService): void {
   server.registerTool(
     'post',
     {
-      description: 'Append a typed speech act (inform/propose/accept/reject/request/failure).',
+      description:
+        'Append a typed speech act (inform/propose/accept/reject/request/failure). ' +
+        'payload is the act-specific object (or a JSON string of it).',
       inputSchema: {
         token: z.string().min(1),
         act: speechActTypeSchema,
-        payload: z.unknown(),
+        payload: z.union([z.string(), z.record(z.string(), z.unknown())]),
         refVersion: z.number().int().positive().optional(),
       },
     },

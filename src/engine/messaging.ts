@@ -16,6 +16,7 @@ import {
 import type { EngineDeps } from './deps.js';
 import { requireParticipant, requireRoom, requireTemplate } from './guards.js';
 import { maybeRegressOnFailure } from './regression.js';
+import { runAutoFacilitation } from './auto-facilitate.js';
 
 /** Append a typed speech act to the transcript, applying its contract side effects. */
 export function post(
@@ -46,6 +47,7 @@ export function post(
   if (speechAct.act === 'failure' && speechAct.payload.fatal) {
     maybeRegressOnFailure(deps, room, me.id);
   }
+  runAutoFacilitation(deps, room.id);
   return { messageId: message.id };
 }
 
@@ -53,6 +55,7 @@ export function post(
 export function setStatus(deps: EngineDeps, token: string, status: Presence): void {
   const me = requireParticipant(deps.store, token);
   deps.store.participants.setStatus(me.roomId, me.id, status);
+  runAutoFacilitation(deps, me.roomId);
 }
 
 /** List transcript messages, optionally only those after a cursor message id. */
@@ -89,7 +92,16 @@ function assertActAllowed(template: Template, phase: Phase, act: SpeechActType):
 }
 
 function parseSpeechAct(act: SpeechActType, payload: unknown): SpeechAct {
-  const result = speechActSchema.safeParse({ act, payload });
+  // Some MCP clients serialize free-form payloads as a JSON string — accept that too.
+  let value = payload;
+  if (typeof value === 'string') {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      // leave as-is; validation below will reject it
+    }
+  }
+  const result = speechActSchema.safeParse({ act, payload: value });
   if (!result.success) {
     throw new ValidationError(`Invalid ${act} payload.`, { cause: result.error });
   }

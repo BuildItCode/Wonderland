@@ -9,6 +9,8 @@ export interface Template {
   exit: ExitCriterion;
   roundCap: number;
   allowedActs: Partial<Record<Phase, SpeechActType[]>>;
+  /** When true, the hub auto-advances/declares on the consensus rules — no facilitator needed. */
+  autoFacilitate?: boolean;
 }
 
 /** Lookup for available templates by id. */

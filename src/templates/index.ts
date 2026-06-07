@@ -1,9 +1,15 @@
 import type { Template, TemplateMeta, TemplateRegistry } from '../domain/index.js';
 import { API_NEGOTIATION } from './api-negotiation.js';
 import { API_NEGOTIATION_VERIFIED } from './api-negotiation-verified.js';
+import { API_NEGOTIATION_AUTO } from './api-negotiation-auto.js';
 import { CROSS_TEAM_DEBUG } from './cross-team-debug.js';
 
-const ALL_TEMPLATES: Template[] = [API_NEGOTIATION, API_NEGOTIATION_VERIFIED, CROSS_TEAM_DEBUG];
+const ALL_TEMPLATES: Template[] = [
+  API_NEGOTIATION,
+  API_NEGOTIATION_VERIFIED,
+  API_NEGOTIATION_AUTO,
+  CROSS_TEAM_DEBUG,
+];
 
 const TEMPLATES = new Map<string, Template>(
   ALL_TEMPLATES.map((template) => [template.id, template]),
@@ -29,4 +35,5 @@ export function toTemplateMeta(template: Template): TemplateMeta {
 
 export { API_NEGOTIATION };
 export { API_NEGOTIATION_VERIFIED };
+export { API_NEGOTIATION_AUTO };
 export { CROSS_TEAM_DEBUG };

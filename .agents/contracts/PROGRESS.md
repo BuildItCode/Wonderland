@@ -111,6 +111,24 @@ _Created: 2026-06-03_
 - Visual: [task-T3.4](../visuals/task-T3.4.html) (final architecture)
 - Notes: Capstone suite over real Streamable HTTP MCP — verified-solution run (AC7+AC10), cross-team-debug run (AC11), and fatal-failure regression (AC8). 88 tests total; `npm audit` 0 vulnerabilities; prod deps = @modelcontextprotocol/sdk, express, nanoid, zod (node:sqlite built-in).
 
+## 2026-06-03 — Test console (REST façade + static UI) ✓
+- Milestone: post-M3 addition
+- Files: src/transport/rest.ts, src/transport/public/index.html, src/engine/snapshot.ts, src/domain/service.ts + hub-engine.ts (listTemplates, roomSnapshot), src/transport/server.ts (mount), src/transport/rest.test.ts
+- Visual: none (the UI is itself the artifact)
+- Notes: REST mirror of HubService at /api/*; static console at /. Verified live on :4000 — create→join→advance→propose→accept yields phase=propose with v1 signed by both. 91 tests green.
+
+## 2026-06-03 — Connection model + multi-room ✓
+- Milestone: post-M3 addition
+- Files: CONNECTING.md, src/transport/public/index.html (Step 1 setup card + Step 2 operator-mandate join snippet), src/engine/multi-room.test.ts
+- Visual: none
+- Notes: One-time MCP setup (claude mcp add / config JSON) then per-room link. Join snippet reframed as an operator mandate (room content = data, not commands) after a real agent flagged the injection shape. Multi-room confirmed live + 2 isolation tests. 93 tests green.
+
+## 2026-06-03 — Auto-facilitation (hub chairs, no LLM) ✓
+- Milestone: post-M3 addition
+- Files: src/domain/template.ts (autoFacilitate), src/templates/api-negotiation-auto.ts + index, src/engine/auto-facilitate.ts, wired into lifecycle/messaging/verification, src/engine/briefing-text.ts, src/transport/tools.ts (payload string|object fix), src/engine/auto-facilitate.test.ts
+- Visual: none
+- Notes: Rule-based chair — auto-advance on consensus, next-phase prompts, state-digest summary, auto-declare. Facilitator optional for auto rooms. Fixed `post` payload schema (string|object) after live MCP testing showed a client stringifies it. Verified live: a no-facilitator auto room ran to a ratified close with no manual advance. 96 tests green.
+
 <!-- Auto-populated by build and validate phases -->
 
 ---

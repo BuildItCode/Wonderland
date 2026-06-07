@@ -120,6 +120,8 @@ interface Briefing {            // resolve_link result — read-only, pre-join
   yourRole: Role;
   yourTeam: string;
   attendees: { team: string; role: Role }[];
+  procedure: string;           // how this template's protocol runs (role-agnostic)
+  instructions: string;        // what THIS role must do — the link carries its own briefing
 }
 
 interface ContractVersion {
@@ -177,7 +179,7 @@ declare(token: string, outcome: Outcome): { doc: string };                  // f
 | `store`     | SQLite repositories, schema, persistence                   | `engine`, `transport`            |
 | `engine`    | phase machine, consensus gate, negotiation rules, summary/doc | `transport`, `express`, MCP SDK  |
 | `templates` | template definitions + registry                            | `transport`, `store`             |
-| `transport` | MCP server wiring, HTTP routing, tool → engine dispatch     | `store` (reach state via engine) |
+| `transport` | MCP server wiring, HTTP routing, tool → engine dispatch, REST façade + static test UI | `store` (reach state via engine) |
 
 ---
 

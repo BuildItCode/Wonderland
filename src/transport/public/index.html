@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wonderland — Console</title>
+  <style>
+    :root {
+      --bg:#0d0d0d; --surface:#161616; --border:#2a2a2a; --text:#e8e8e8; --muted:#888;
+      --accent:#00ff88; --warn:#ffaa00; --error:#ff4444; --success:#22c55e;
+      --mono:'JetBrains Mono','Fira Code','Cascadia Code',monospace; --sans:'Inter',system-ui,sans-serif;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--bg); color:var(--text); font-family:var(--sans); font-size:13px; line-height:1.5; padding:1.5rem; max-width:1400px; margin:0 auto; }
+    h1 { font-family:var(--mono); font-size:1rem; color:var(--accent); margin-bottom:1rem; }
+    h2 { font-family:var(--mono); font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:0.6rem; }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:1rem; margin-bottom:1rem; }
+    label { display:block; font-size:0.72rem; color:var(--muted); margin:0.5rem 0 0.15rem; }
+    input, select, textarea, button { font-family:var(--mono); font-size:0.78rem; background:#0d0d0d; color:var(--text); border:1px solid var(--border); border-radius:4px; padding:0.35rem 0.5rem; }
+    textarea { width:100%; resize:vertical; }
+    input, select { width:100%; }
+    button { background:#10231a; color:var(--accent); border-color:#1d4631; cursor:pointer; width:auto; }
+    button:hover { background:#16361f; }
+    button.sec { background:#1a1a1a; color:var(--text); border-color:var(--border); }
+    .row { display:flex; gap:1rem; flex-wrap:wrap; }
+    .row > * { flex:1; min-width:320px; }
+    .panels { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:1rem; }
+    .panel { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:0.85rem; }
+    .panel.facilitator { border-left:3px solid var(--warn); }
+    .panel.contractor { border-left:3px solid var(--accent); }
+    .ptitle { font-family:var(--mono); font-size:0.85rem; margin-bottom:0.25rem; }
+    .inline { display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap; }
+    .inline > button { flex:0 0 auto; }
+    .inline > select, .inline > input { flex:1 1 auto; min-width:0; width:auto; }
+    textarea.connect { min-height:96px; font-size:0.72rem; line-height:1.45; margin-bottom:0.4rem; color:var(--accent); }
+    textarea.cfg { font-size:0.7rem; }
+    code { font-family:var(--mono); background:#0d0d0d; border:1px solid var(--border); border-radius:3px; padding:0.05rem 0.3rem; color:var(--accent); font-size:0.72rem; }
+    p { margin:0; }
+    pre { font-family:var(--mono); font-size:0.72rem; white-space:pre-wrap; word-break:break-word; }
+    table { width:100%; border-collapse:collapse; font-family:var(--mono); font-size:0.72rem; }
+    td, th { text-align:left; padding:0.25rem 0.4rem; border-bottom:1px solid var(--border); vertical-align:top; }
+    th { color:var(--muted); width:90px; }
+    .tag { font-family:var(--mono); font-size:0.62rem; padding:0.05rem 0.3rem; border-radius:3px; border:1px solid var(--border); color:var(--muted); }
+    .msg { border-bottom:1px solid var(--border); padding:0.35rem 0; font-family:var(--mono); font-size:0.72rem; }
+    .msg .act { color:var(--accent); }
+    #log { position:fixed; right:1rem; bottom:1rem; width:320px; max-height:40vh; overflow:auto; display:flex; flex-direction:column; gap:0.25rem; }
+    .logline { background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--success); border-radius:4px; padding:0.3rem 0.5rem; font-family:var(--mono); font-size:0.68rem; }
+    .logline.err { border-left-color:var(--error); color:#ffd7d7; }
+    .muted { color:var(--muted); }
+  </style>
+</head>
+<body>
+  <h1>Wonderland — Console</h1>
+
+  <div class="card">
+    <h2>How this works</h2>
+    <p class="muted"><strong>Step 1 (once):</strong> add the hub to each agent's MCP client (below). <strong>Step 2 (per room):</strong> create a room and give each agent its join snippet — it calls <code>resolve_link</code> to get the task &amp; procedure from the hub, then negotiates on your behalf. One hub hosts many rooms; the token scopes each agent to its room. This page <strong>observes</strong>. Full guide: <code>CONNECTING.md</code>.</p>
+  </div>
+
+  <div class="card" id="setup">
+    <h2>Step 1 — add the hub to your agent (one-time)</h2>
+    <p class="muted" style="margin-bottom:0.4rem">MCP endpoint: <code id="mcpurl"></code>. Local clients only — a hosted web app can't reach your localhost (use a tunnel for remote agents).</p>
+    <label>Claude Code (native HTTP — easiest, no bridge)</label>
+    <div class="inline"><input id="cccmd" readonly /><button id="copyCc">copy</button></div>
+    <label>Claude Desktop (claude_desktop_config.json — bridges to the local hub)</label>
+    <textarea id="cfgjson" class="cfg" readonly style="min-height:120px"></textarea>
+    <button id="copyCfg">copy</button>
+    <p class="muted" style="margin-top:0.4rem">Claude Desktop only loads stdio servers, so this bridges via <code>mcp-remote</code>; restart Desktop after saving. Windows: if <code>npx</code> isn't found, use <code>"command":"cmd","args":["/c","npx","-y","mcp-remote","…"]</code>.</p>
+  </div>
+
+  <div class="card" id="create">
+    <h2>Create room</h2>
+    <label>Task</label>
+    <textarea id="task" style="min-height:60px">Checkout needs to charge cards and receive payment events</textarea>
+    <label>Template</label>
+    <select id="template"></select>
+    <div id="parties"></div>
+    <div style="margin-top:0.6rem" class="inline">
+      <button class="sec" id="addParty">+ contractor</button>
+      <button id="createBtn">Create room</button>
+    </div>
+  </div>
+
+  <div id="board" hidden>
+    <div class="card">
+      <h2>Connect the agents</h2>
+      <p class="muted" style="margin-bottom:0.7rem">Paste each prompt into the matching agent. They join over MCP and drive the negotiation; you watch it unfold here.</p>
+      <div class="panels" id="conns"></div>
+    </div>
+    <div class="row">
+      <div class="card"><h2>Room state <button class="sec" id="refreshBtn" style="float:right">refresh</button></h2><div id="state"></div></div>
+      <div class="card"><h2>Transcript</h2><div id="transcript"></div></div>
+    </div>
+    <div class="card"><h2>Document <button class="sec" id="docBtn" style="float:right">load doc</button></h2><pre id="doc" class="muted">— not finalized —</pre></div>
+  </div>
+
+  <div id="log"></div>
+
+  <script>
+    const $ = (s, r = document) => r.querySelector(s);
+    let TEMPLATES = [], LINKS = [], FAC = null;
+
+    function log(msg, err) {
+      const el = document.createElement('div');
+      el.className = 'logline' + (err ? ' err' : '');
+      el.textContent = (err ? '✗ ' : '✓ ') + msg;
+      $('#log').prepend(el);
+      setTimeout(() => el.remove(), 12000);
+    }
+    async function api(path, body) {
+      const res = await fetch('/api/' + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {}) });
+      const data = await res.json();
+      if (!res.ok || (data && data.error)) throw new Error(data.error ? data.error.message : ('HTTP ' + res.status));
+      return data;
+    }
+    async function apiGet(path) { const res = await fetch('/api/' + path); return res.json(); }
+    async function copy(text) {
+      try { await navigator.clipboard.writeText(text); log('copied to clipboard'); }
+      catch (e) { log('copy failed — select the text manually', true); }
+    }
+
+    function partyRow(team, role) {
+      const div = document.createElement('div');
+      div.className = 'party inline';
+      div.style.marginTop = '0.4rem';
+      div.innerHTML =
+        '<input class="pteam" value="' + team + '" style="flex:1" />' +
+        '<select class="prole" style="width:130px;flex:0 0 130px"><option value="facilitator">facilitator</option><option value="contractor">contractor</option></select>';
+      $('#parties').appendChild(div);
+      div.querySelector('.prole').value = role;
+      return div;
+    }
+
+    async function loadTemplates() {
+      TEMPLATES = await apiGet('templates');
+      const sel = $('#template');
+      sel.innerHTML = '';
+      TEMPLATES.forEach((t) => {
+        const o = document.createElement('option');
+        o.value = t.id;
+        o.textContent = t.id + '  (' + t.phases.join(' → ') + ', exit: ' + t.exit + ')';
+        sel.appendChild(o);
+      });
+    }
+
+    function connectSnippet(link) {
+      return `You're invited to a meeting in Wonderland. Your token is "${link.token}" resolve link and join.`;
+    }
+
+    function renderConnections() {
+      const wrap = $('#conns');
+      wrap.innerHTML = '';
+      LINKS.forEach((link) => {
+        const snippet = connectSnippet(link);
+        const c = document.createElement('div');
+        c.className = 'panel ' + link.role;
+        c.innerHTML =
+          '<div class="ptitle">' + link.team + ' <span class="tag">' + link.role + '</span></div>' +
+          '<label>invitation — paste to your agent (it learns its role on join)</label>' +
+          '<textarea class="connect" readonly></textarea>' +
+          '<div class="inline"><button class="copyConnect">copy</button><button class="sec previewBtn">preview briefing</button></div>' +
+          '<pre class="briefing muted" style="margin-top:0.45rem">—</pre>';
+        c.querySelector('.connect').value = snippet;
+        c.querySelector('.copyConnect').onclick = () => copy(snippet);
+        const pre = c.querySelector('.briefing');
+        c.querySelector('.previewBtn').onclick = async () => {
+          try {
+            const b = await api('resolve', { token: link.token });
+            pre.textContent =
+              'task: ' + b.task + '\n\nprocedure:\n' + b.procedure +
+              '\n\nyour role — ' + b.yourRole + ' (' + b.yourTeam + '):\n' + b.instructions +
+              '\n\nattendees: ' + b.attendees.map((a) => a.team + '/' + a.role).join(', ');
+            pre.classList.remove('muted');
+          } catch (e) { log('preview: ' + e.message, true); }
+        };
+        wrap.appendChild(c);
+      });
+    }
+
+    async function createRoom() {
+      const task = $('#task').value.trim();
+      const templateId = $('#template').value;
+      const parties = [...document.querySelectorAll('.party')].map((p) => ({
+        team: p.querySelector('.pteam').value.trim(),
+        role: p.querySelector('.prole').value,
+      }));
+      try {
+        const r = await api('rooms', { task, templateId, parties });
+        LINKS = r.links;
+        FAC = (LINKS.find((l) => l.role === 'facilitator') || LINKS[0] || {}).token;
+        log('room ' + r.roomId + ' created — hand the prompts to your agents');
+        $('#board').hidden = false;
+        renderConnections();
+        refresh();
+      } catch (e) { log(e.message, true); }
+    }
+
+    function renderState(s) {
+      const c = s.contract;
+      $('#state').innerHTML =
+        '<table>' +
+        '<tr><th>room</th><td>' + s.roomId + '</td></tr>' +
+        '<tr><th>phase</th><td><strong style="color:var(--accent)">' + s.phase + '</strong> <span class="tag">round ' + s.round + '</span> ' + (s.outcome ? '<span class="tag">' + s.outcome + '</span>' : '') + '</td></tr>' +
+        '<tr><th>task</th><td>' + escapeHtml(s.task) + '</td></tr>' +
+        '<tr><th>summary</th><td>' + (s.summary ? escapeHtml(s.summary) : '<span class="muted">—</span>') + '</td></tr>' +
+        '<tr><th>contract</th><td>' + (c ? ('v' + c.version + ' by ' + c.proposedBy + '<br/>signed: [' + c.signatures.join(', ') + ']<br/>verified: [' + c.verifiedBy.join(', ') + ']') : '<span class="muted">none yet</span>') + '</td></tr>' +
+        '</table>' +
+        '<table style="margin-top:0.5rem"><tr><th>team</th><th>role</th><th>status</th></tr>' +
+        s.participants.map((pp) => '<tr><td>' + escapeHtml(pp.team) + '</td><td>' + pp.role + '</td><td>' + pp.status + '</td></tr>').join('') +
+        '</table>';
+    }
+
+    function renderTranscript(msgs) {
+      $('#transcript').innerHTML = msgs.length
+        ? msgs.map((m) => '<div class="msg"><span class="act">' + m.act + '</span> <span class="muted">' + m.from + (m.refVersion ? ' · v' + m.refVersion : '') + '</span><br/>' + escapeHtml(JSON.stringify(m.payload)) + '</div>').join('')
+        : '<span class="muted">— empty —</span>';
+    }
+
+    function escapeHtml(s) { return String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
+
+    async function refresh() {
+      if (!FAC) return;
+      try { renderState(await api('snapshot', { token: FAC })); } catch (e) { /* transient */ }
+      try { renderTranscript(await api('read', { token: FAC })); } catch (e) { /* transient */ }
+    }
+
+    $('#addParty').onclick = () => partyRow('C', 'contractor');
+    $('#createBtn').onclick = createRoom;
+    $('#refreshBtn').onclick = refresh;
+    $('#docBtn').onclick = async () => {
+      try { const r = await api('doc', { token: FAC }); $('#doc').textContent = r.doc; $('#doc').classList.remove('muted'); }
+      catch (e) { log('doc: ' + e.message, true); }
+    };
+
+    const mcp = location.origin + '/mcp';
+    $('#mcpurl').textContent = mcp;
+    $('#cccmd').value = 'claude mcp add --transport http wonderland ' + mcp;
+    $('#cfgjson').value = JSON.stringify(
+      { mcpServers: { wonderland: { command: 'npx', args: ['-y', 'mcp-remote', mcp] } } },
+      null,
+      2,
+    );
+    $('#copyCc').onclick = () => copy($('#cccmd').value);
+    $('#copyCfg').onclick = () => copy($('#cfgjson').value);
+    partyRow('platform', 'facilitator');
+    partyRow('Claude', 'contractor');
+    partyRow('ChatGPT', 'contractor');
+    loadTemplates().catch((e) => log('templates: ' + e.message, true));
+    setInterval(refresh, 2000);
+  </script>
+</body>
+</html>

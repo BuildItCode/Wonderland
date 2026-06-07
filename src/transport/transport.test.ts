@@ -15,6 +15,8 @@ const stub: HubService = {
     yourRole: 'contractor',
     yourTeam: 'A',
     attendees: [],
+    procedure: 'procedure text',
+    instructions: 'role instructions',
   }),
   join: () => ({ participantId: 'p1', phase: 'frame', summary: '' }),
   post: () => ({ messageId: 'm1' }),
@@ -27,6 +29,17 @@ const stub: HubService = {
   submitVerification: () => ({ remaining: [] }),
   declare: () => ({ doc: '# doc' }),
   readDoc: () => ({ doc: '# doc' }),
+  listTemplates: () => [],
+  roomSnapshot: () => ({
+    roomId: 'r1',
+    task: 't',
+    phase: 'frame',
+    round: 0,
+    summary: '',
+    outcome: null,
+    participants: [],
+    contract: null,
+  }),
 };
 
 const EXPECTED_TOOLS = [

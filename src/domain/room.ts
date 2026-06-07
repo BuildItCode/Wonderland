@@ -25,7 +25,7 @@ export type TemplateMeta = z.infer<typeof templateMetaSchema>;
 /** A single attendee entry as shown in a briefing. */
 export const attendeeSchema = z.object({ team: z.string().min(1), role: roleSchema }).strict();
 
-/** What a role-link reveals before joining, so an agent can prepare. */
+/** What a role-link reveals: the task, the procedure, and this role's instructions. */
 export const briefingSchema = z
   .object({
     roomId: idSchema,
@@ -34,6 +34,8 @@ export const briefingSchema = z
     yourRole: roleSchema,
     yourTeam: z.string().min(1),
     attendees: z.array(attendeeSchema),
+    procedure: z.string().min(1),
+    instructions: z.string().min(1),
   })
   .strict();
 

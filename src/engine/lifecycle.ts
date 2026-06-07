@@ -13,11 +13,13 @@ import {
 import { toTemplateMeta } from '../templates/index.js';
 import type { EngineDeps } from './deps.js';
 import { requireParticipant, requireRoom, requireTemplate } from './guards.js';
+import { procedureText, roleInstructions } from './briefing-text.js';
+import { runAutoFacilitation } from './auto-facilitate.js';
 
 /** Create a room and mint one role-link per party. */
 export function createRoom(deps: EngineDeps, input: CreateRoomInput): CreateRoomResult {
   const template = requireTemplate(deps.templates, input.templateId);
-  assertValidParties(input);
+  assertValidParties(input, template.autoFacilitate ?? false);
   const roomId = deps.ids.room();
   const room: Room = {
     id: roomId,
@@ -52,6 +54,8 @@ export function resolveLink(deps: EngineDeps, token: string): Briefing {
     yourRole: me.role,
     yourTeam: me.team,
     attendees,
+    procedure: procedureText(template),
+    instructions: roleInstructions(template, me.role),
   };
 }
 
@@ -65,13 +69,19 @@ export function join(deps: EngineDeps, token: string): JoinResult {
   if (me.status === 'invited' || me.status === 'preparing') {
     deps.store.participants.setStatus(room.id, me.id, 'joined');
   }
-  return { participantId: me.id, phase: room.phase, summary: room.summary };
+  runAutoFacilitation(deps, me.roomId);
+  const current = deps.store.rooms.get(me.roomId) ?? room;
+  return { participantId: me.id, phase: current.phase, summary: current.summary };
 }
 
-function assertValidParties(input: CreateRoomInput): void {
+function assertValidParties(input: CreateRoomInput, autoFacilitate: boolean): void {
   const facilitators = input.parties.filter((party) => party.role === 'facilitator').length;
   const contractors = input.parties.filter((party) => party.role === 'contractor').length;
-  if (facilitators !== 1) {
+  if (autoFacilitate) {
+    if (facilitators > 1) {
+      throw new ValidationError('An auto-facilitated room allows at most one facilitator.');
+    }
+  } else if (facilitators !== 1) {
     throw new ValidationError('A room requires exactly one facilitator.');
   }
   if (contractors < 1) {

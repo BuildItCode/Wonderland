@@ -3,6 +3,7 @@ import type { EngineDeps } from './deps.js';
 import { requireParticipant, requireRoom } from './guards.js';
 import { unverifiedContractors } from './consensus.js';
 import { appendNote } from './notes.js';
+import { runAutoFacilitation } from './auto-facilitate.js';
 
 /**
  * Submit a verification result for a contract version (contractor only, verify phase).
@@ -36,5 +37,6 @@ export function submitVerification(
   } else {
     appendNote(deps, room, me.id, `Verification failed for v${version}.`);
   }
+  runAutoFacilitation(deps, room.id);
   return { remaining: unverifiedContractors(deps, room) };
 }

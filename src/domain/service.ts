@@ -1,4 +1,4 @@
-import type { Briefing, MyState, RoleLink } from './room.js';
+import type { Briefing, MyState, RoleLink, TemplateMeta } from './room.js';
 import type { Message } from './speech-acts.js';
 import type { LinkToken, MessageId, ParticipantId, RoomId } from './ids.js';
 import type { Outcome, Phase, Presence, Role, SpeechActType } from './enums.js';
@@ -36,6 +36,23 @@ export type AdvanceResult =
 
 /** Result of submitting verification: the contractors who still need to pass. */
 export type VerifyResult = { remaining: ParticipantId[] };
+
+/** A read-only snapshot of room state for display. */
+export interface RoomSnapshot {
+  roomId: RoomId;
+  task: string;
+  phase: Phase;
+  round: number;
+  summary: string;
+  outcome: Outcome | null;
+  participants: Array<{ id: ParticipantId; team: string; role: Role; status: Presence }>;
+  contract: {
+    version: number;
+    proposedBy: ParticipantId;
+    signatures: ParticipantId[];
+    verifiedBy: ParticipantId[];
+  } | null;
+}
 
 /** Result of a regression: the phase re-opened, or an unsolvable outcome when the round cap is hit. */
 export type RegressResult = { phase: Phase } | { outcome: Outcome };
@@ -76,4 +93,8 @@ export interface HubService {
   declare(token: LinkToken, outcome: Outcome): DeclareResult;
   /** Read the finalized document (any participant; survives close). */
   readDoc(token: LinkToken): { doc: string };
+  /** List available templates (for selection / UX). */
+  listTemplates(): TemplateMeta[];
+  /** A read-only snapshot of room state for display (works after close). */
+  roomSnapshot(token: LinkToken): RoomSnapshot;
 }

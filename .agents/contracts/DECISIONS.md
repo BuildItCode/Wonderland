@@ -112,6 +112,16 @@ _Created: 2026-06-03_
 
 ---
 
+## 2026-06-07 — Web console: observer board → multi-page app
+
+- Triggered by: user requests to make the test frontend production-quality, then split Setup into a wizard.
+- Changed: `src/transport/public/index.html` (rewritten) — a hash-routed single-page app with four views: a **Landing** hero (animated dot-matrix `<canvas>` + logo, reduced-motion aware), a two-step **Setup** wizard (`#/setup` connect → `#/create` room) with a stepper and directional slide animation, and a **Hub** observer (`#/hub`) with a seat roster (avatars/presence/stance), a chat-style transcript attributed per seat, a current-proposal card, and the rendered document on close. The active room persists in `localStorage` (reload-safe). A subtle dot backdrop, glow accents, and refined cards carry the landing's look across pages. Added `.claude/launch.json` so the preview runner can host `npm run dev`.
+- Engine touch: the auto-facilitation summary now names the proposing **team** instead of its participant id (cosmetic, surfaced by the console).
+- Rationale: the console is the demo/operator surface; legibility (who's talking, what's proposed, who's agreed) matters alongside the protocol. It stays a single static file served by the existing transport — no new dependencies, no build step.
+- Result: validated in-browser (landing, both wizard steps, a resolved Hub run, responsive) with no console errors. HTML/CSS/JS-only; engine tests unchanged (62 green). Docs: README.md added; CONNECTING.md updated.
+
+---
+
 <!-- Template for future entries:
 
 ## {{DATE}} — {{Decision Title}}

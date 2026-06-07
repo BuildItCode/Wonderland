@@ -1,5 +1,13 @@
 import type { Facilitation, Role } from '../domain/index.js';
 
+/** A paste-ready, role-agnostic invitation for one seat. The agent learns its role from `resolve_link`. */
+export function invitationText(token: string): string {
+  return (
+    `You're invited to a Wonderland room to help solve a task. Using your Wonderland MCP tools, ` +
+    `call resolve_link with token "${token}", then join — it will tell you the task, your role, and what to do.`
+  );
+}
+
 /** Human-readable description of how the room works, given the facilitation mode (role-agnostic). */
 export function procedureText(facilitation: Facilitation): string {
   const driver =

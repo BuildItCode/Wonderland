@@ -41,9 +41,9 @@ An in-house, **model-less MCP coordination hub**. Coding agents from different t
 ## Out of Scope
 
 - Cross-organization trust, auth, secret isolation, exfiltration controls — **in-house single-trust-domain** assumption (the agent already reads the codebase).
-- The hub running any LLM/model itself — facilitator and contractors are **external** MCP agents.
+- The hub running any LLM/model itself — facilitator and participants are **external** MCP agents.
 - Real-time / synchronous voice or video — interaction is **async**.
-- Building the contractor or facilitator agents — any MCP-capable client works; we ship role-link briefings + role prompts, not models.
+- Building the participant or facilitator agents — any MCP-capable client works; we ship role-link briefings + role prompts, not models.
 - Rich web UI / dashboard beyond a minimal read-only doc view.
 - Production multi-tenant hardening, rate limiting, horizontal scaling.
 - Non-MCP transports.
@@ -56,5 +56,5 @@ An in-house, **model-less MCP coordination hub**. Coding agents from different t
 > Remove entries once resolved; log the resolution in DECISIONS.md.
 
 - [ ] Room addressing: true wildcard subdomains vs. path-based `/{roomId}` behind one host. v1 leans path-based; subdomain is a cosmetic layer later.
-- [ ] Does v1 actively target 3+ contractors, or keep an N-capable data model but only exercise 2-party scenarios?
+- [ ] Does v1 actively target 3+ participants, or keep an N-capable data model but only exercise 2-party scenarios?
 - [ ] Where the facilitator role prompt / procedure spec is packaged — embedded in the briefing payload, or fetched separately.

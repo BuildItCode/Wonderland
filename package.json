@@ -3,14 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "author": "Nick Psarakis",
+  "license":"MIT",
   "description": "Model-less MCP coordination hub where agents negotiate cross-codebase tasks.",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "start": "node dist/index.js",
-    "build": "tsc",
+    "start": "node --env-file-if-exists=.env dist/index.js",
+    "build": "tsc && node copy-public.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",

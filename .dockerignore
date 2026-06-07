@@ -1,0 +1,16 @@
+node_modules
+dist
+data
+coverage
+.git
+.gitignore
+.env
+.env.*
+*.log
+*.sqlite
+*.sqlite-*
+*.db
+.agents
+.claude
+.vscode
+*.md

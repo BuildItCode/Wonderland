@@ -48,7 +48,11 @@ describe('createRoom', () => {
     expect(result.roomId).toBe('r1');
     expect(result.url).toBe('/rooms/r1');
     expect(result.links).toHaveLength(3);
-    expect(result.links[0]).toMatchObject({ role: 'facilitator', team: 'platform', roomId: 'r1' });
+    const fac = result.links[0]!;
+    expect(fac).toMatchObject({ role: 'facilitator', team: 'platform', roomId: 'r1' });
+    // each link carries a paste-ready invite for that seat
+    expect(fac.invite).toContain(fac.token);
+    expect(fac.invite).toMatch(/resolve_link/);
   });
 
   it('rejects an agent room without exactly one facilitator', () => {

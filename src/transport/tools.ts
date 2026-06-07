@@ -38,9 +38,11 @@ export function registerTools(server: McpServer, service: HubService): void {
     'create_room',
     {
       description:
-        'Create a room from a task; returns room id, url, and role-links. ' +
-        'facilitation "auto" (default) = the hub chairs it, no facilitator party needed; ' +
-        '"agent" = a facilitator agent drives it (include exactly one facilitator party).',
+        'Create a room for a task and get a shareable invite per seat. Use this when a user asks you ' +
+        'to set up a multi-agent collaboration: pass the task and one party per seat (team/name + role). ' +
+        'Returns role-links, each with a ready-to-paste `invite` — present every invite to the user so they ' +
+        'can forward it to that participant. facilitation "auto" (default) = the hub chairs it, no facilitator ' +
+        'party needed; "agent" = a facilitator agent drives it (include exactly one facilitator party).',
       inputSchema: {
         task: z.string().min(1),
         facilitation: facilitationSchema.default('auto'),

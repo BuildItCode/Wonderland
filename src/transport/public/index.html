@@ -3,112 +3,351 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Wonderland — Console</title>
+  <title>Wonderland — agent collaboration hub</title>
   <style>
     :root {
-      --bg:#0d0d0d; --surface:#161616; --border:#2a2a2a; --text:#e8e8e8; --muted:#888;
-      --accent:#00ff88; --warn:#ffaa00; --error:#ff4444; --success:#22c55e;
-      --mono:'JetBrains Mono','Fira Code','Cascadia Code',monospace; --sans:'Inter',system-ui,sans-serif;
+      --bg:#0a0c0f; --surface:#13161b; --surface2:#1a1e25; --border:#242a33; --border2:#333a45;
+      --text:#e7eaee; --muted:#8b929b; --faint:#5b626c;
+      --accent:#34d399; --accent-rgb:52,211,153; --info:#38bdf8; --warn:#fbbf24; --error:#fb7185; --gold:#f4c542; --violet:#a78bfa;
+      --mono:'JetBrains Mono','Fira Code','Cascadia Code',ui-monospace,monospace;
+      --sans:'Inter',system-ui,-apple-system,sans-serif;
+      --radius:10px; --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.25);
     }
     * { box-sizing:border-box; margin:0; padding:0; }
-    body { background:var(--bg); color:var(--text); font-family:var(--sans); font-size:13px; line-height:1.5; padding:1.5rem; max-width:1400px; margin:0 auto; }
-    h1 { font-family:var(--mono); font-size:1rem; color:var(--accent); margin-bottom:1rem; }
-    h2 { font-family:var(--mono); font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:0.6rem; }
-    .card { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:1rem; margin-bottom:1rem; }
-    label { display:block; font-size:0.72rem; color:var(--muted); margin:0.5rem 0 0.15rem; }
-    input, select, textarea, button { font-family:var(--mono); font-size:0.78rem; background:#0d0d0d; color:var(--text); border:1px solid var(--border); border-radius:4px; padding:0.35rem 0.5rem; }
-    textarea { width:100%; resize:vertical; }
-    input, select { width:100%; }
-    button { background:#10231a; color:var(--accent); border-color:#1d4631; cursor:pointer; width:auto; }
-    button:hover { background:#16361f; }
-    button.sec { background:#1a1a1a; color:var(--text); border-color:var(--border); }
-    .row { display:flex; gap:1rem; flex-wrap:wrap; }
-    .row > * { flex:1; min-width:320px; }
-    .panels { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:1rem; }
-    .panel { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:0.85rem; }
-    .panel.facilitator { border-left:3px solid var(--warn); }
-    .panel.participant { border-left:3px solid var(--accent); }
-    .ptitle { font-family:var(--mono); font-size:0.85rem; margin-bottom:0.25rem; }
-    .inline { display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap; }
-    .inline > button { flex:0 0 auto; }
-    .inline > select, .inline > input { flex:1 1 auto; min-width:0; width:auto; }
-    textarea.connect { min-height:96px; font-size:0.72rem; line-height:1.45; margin-bottom:0.4rem; color:var(--accent); }
-    textarea.cfg { font-size:0.7rem; }
-    code { font-family:var(--mono); background:#0d0d0d; border:1px solid var(--border); border-radius:3px; padding:0.05rem 0.3rem; color:var(--accent); font-size:0.72rem; }
-    p { margin:0; }
-    pre { font-family:var(--mono); font-size:0.72rem; white-space:pre-wrap; word-break:break-word; }
-    table { width:100%; border-collapse:collapse; font-family:var(--mono); font-size:0.72rem; }
-    td, th { text-align:left; padding:0.25rem 0.4rem; border-bottom:1px solid var(--border); vertical-align:top; }
-    th { color:var(--muted); width:90px; }
-    .tag { font-family:var(--mono); font-size:0.62rem; padding:0.05rem 0.3rem; border-radius:3px; border:1px solid var(--border); color:var(--muted); }
-    .msg { border-bottom:1px solid var(--border); padding:0.35rem 0; font-family:var(--mono); font-size:0.72rem; }
-    .msg .act { color:var(--accent); }
-    #log { position:fixed; right:1rem; bottom:1rem; width:320px; max-height:40vh; overflow:auto; display:flex; flex-direction:column; gap:0.25rem; }
-    .logline { background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--success); border-radius:4px; padding:0.3rem 0.5rem; font-family:var(--mono); font-size:0.68rem; }
-    .logline.err { border-left-color:var(--error); color:#ffd7d7; }
-    .muted { color:var(--muted); }
+    [hidden] { display:none !important; }
+    html, body { height:100%; }
+    body { background:var(--bg); color:var(--text); font-family:var(--sans); font-size:13px; line-height:1.5; min-height:100vh; }
+    a { color:inherit; text-decoration:none; }
+    /* subtle dot backdrop on content pages (the hero has its own animated canvas) */
+    body::before { content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.6; transition:opacity .4s ease;
+      background-image:radial-gradient(circle, rgba(var(--accent-rgb),.06) 1px, transparent 1.5px); background-size:32px 32px;
+      -webkit-mask-image:radial-gradient(ellipse 90% 80% at 50% 18%, #000 35%, transparent 95%);
+      mask-image:radial-gradient(ellipse 90% 80% at 50% 18%, #000 35%, transparent 95%); }
+    body[data-route="landing"]::before { opacity:0; }
+    .view { position:relative; z-index:1; }
+    #view-hub:not([hidden]) { animation:fadeUp .4s ease both; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+    @keyframes inRight { from { opacity:0; transform:translateX(26px); } to { opacity:1; transform:none; } }
+    @keyframes inLeft { from { opacity:0; transform:translateX(-26px); } to { opacity:1; transform:none; } }
+    .anim-right { animation:inRight .4s cubic-bezier(.22,.61,.36,1) both; }
+    .anim-left { animation:inLeft .4s cubic-bezier(.22,.61,.36,1) both; }
+    ::-webkit-scrollbar { width:10px; height:10px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:#252b34; border-radius:8px; border:2px solid var(--bg); }
+    ::-webkit-scrollbar-thumb:hover { background:#333b46; }
+    .page-head { display:flex; align-items:center; gap:.6rem; margin-bottom:.35rem; }
+    .page-head .ph-d { color:var(--accent); font-size:1.3rem; filter:drop-shadow(0 0 10px rgba(var(--accent-rgb),.55)); animation:pulse 4.5s ease-in-out infinite; }
+    .page-head h1 { font-size:1.6rem; font-weight:800; letter-spacing:-.02em; }
+    code { font-family:var(--mono); background:#0a0c0f; border:1px solid var(--border); border-radius:5px; padding:.08rem .35rem; color:var(--accent); font-size:.74rem; }
+    button, .btn { font-family:var(--sans); font-size:.78rem; cursor:pointer; border-radius:7px; border:1px solid var(--border2); background:var(--surface2); color:var(--text); padding:.45rem .75rem; transition:background .12s, border-color .12s, transform .08s; display:inline-flex; align-items:center; gap:.4rem; }
+    button:hover, .btn:hover { background:#222732; border-color:#3d4552; }
+    .btn-primary { background:#10261d; color:var(--accent); border-color:#1f5440; font-weight:600; }
+    .btn-primary:hover { background:#143123; box-shadow:0 0 0 1px rgba(var(--accent-rgb),.35), 0 0 20px rgba(var(--accent-rgb),.18); }
+    .btn-lg:hover { transform:translateY(-1px); }
+    .btn-ghost { background:transparent; }
+    .btn-lg { padding:.7rem 1.2rem; font-size:.92rem; border-radius:9px; }
+    button.icon { padding:.3rem .5rem; color:var(--muted); }
+    input, select, textarea { font-family:var(--mono); font-size:.78rem; background:#0a0c0f; color:var(--text); border:1px solid var(--border); border-radius:7px; padding:.45rem .55rem; width:100%; }
+    input:focus, select:focus, textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(var(--accent-rgb),.12); }
+    textarea { resize:vertical; }
+    label { display:block; font-size:.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin:.7rem 0 .25rem; }
+    h2 { font-size:1.05rem; font-weight:600; }
+    h3 { font-family:var(--mono); font-size:.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:.1em; }
+    p.lead { color:var(--muted); font-size:.82rem; }
+    .muted { color:var(--muted); } .faint { color:var(--faint); }
+
+    /* nav */
+    .nav { position:sticky; top:0; z-index:30; display:flex; align-items:center; gap:1.1rem; padding:.7rem 1.2rem;
+      background:rgba(10,12,15,.82); backdrop-filter:blur(10px); border-bottom:1px solid var(--border); transition:background .2s, border-color .2s; }
+    body[data-route="landing"] .nav { background:transparent; border-bottom-color:transparent; }
+    .nav .brand { font-weight:700; font-size:.95rem; }
+    .nav .brand .mark { color:var(--accent); filter:drop-shadow(0 0 6px rgba(var(--accent-rgb),.55)); }
+    .nav .links { display:flex; gap:.3rem; }
+    .nav .links a { padding:.35rem .7rem; border-radius:7px; color:var(--muted); font-size:.8rem; }
+    .nav .links a:hover { background:var(--surface2); color:var(--text); }
+    .nav .links a.active { color:var(--accent); background:#10261d; }
+    .nav .spacer { flex:1; }
+    .health { display:flex; align-items:center; gap:.4rem; font-size:.72rem; color:var(--muted); }
+    .dot { width:8px; height:8px; border-radius:50%; background:var(--faint); }
+    .dot.up { background:var(--accent); box-shadow:0 0 8px var(--accent); }
+    .dot.down { background:var(--error); }
+
+    .wrap { max-width:1500px; margin:0 auto; padding:1.2rem; }
+    .narrow { max-width:880px; margin:0 auto; padding:1.6rem 1.2rem 3rem; }
+    .card { position:relative; overflow:hidden; background:linear-gradient(180deg, #161a20, #12151a); border:1px solid var(--border); border-radius:14px; padding:1.3rem; box-shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 34px rgba(0,0,0,.35); }
+    .card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg, transparent, rgba(var(--accent-rgb),.45), transparent); }
+
+    /* landing */
+    #view-landing { position:relative; }
+    .hero { position:relative; min-height:calc(100vh - 56px); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+    #dots { position:absolute; inset:0; width:100%; height:100%; display:block; }
+    .hero::after { content:''; position:absolute; inset:0; pointer-events:none;
+      background:radial-gradient(ellipse 70% 60% at 50% 45%, transparent 35%, var(--bg) 92%); }
+    .hero-content { position:relative; z-index:2; text-align:center; padding:2rem 1.2rem; }
+    .logo { display:inline-flex; align-items:center; gap:.18em; font-size:clamp(2.8rem, 9vw, 6.2rem); font-weight:800; letter-spacing:-.03em; line-height:1; }
+    .logo .diamond { color:var(--accent); filter:drop-shadow(0 0 22px rgba(var(--accent-rgb),.55)); animation:pulse 4.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:.82; transform:scale(1);} 50%{opacity:1; transform:scale(1.07);} }
+    .tagline { color:var(--muted); max-width:600px; margin:1.4rem auto 0; font-size:clamp(.92rem, 2.2vw, 1.08rem); line-height:1.6; }
+    .cta { margin-top:2rem; display:flex; gap:.8rem; justify-content:center; flex-wrap:wrap; }
+    .hero-foot { margin-top:2.4rem; font-family:var(--mono); font-size:.66rem; color:var(--faint); letter-spacing:.28em; text-transform:uppercase; }
+
+    /* setup */
+    .step { display:flex; gap:1rem; }
+    .step + .step { margin-top:1.1rem; }
+    .step .num { flex:0 0 auto; width:36px; height:36px; border-radius:10px; background:#10261d; border:1px solid #1f5440; color:var(--accent);
+      display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-weight:700; box-shadow:0 0 16px rgba(var(--accent-rgb),.22); }
+    .step .body { flex:1; min-width:0; }
+    .copyrow { display:flex; gap:.4rem; }
+    .copyrow input, .copyrow textarea { flex:1; }
+    .seatinput { display:flex; gap:.4rem; align-items:center; margin-top:.4rem; }
+    .seatinput .steam { flex:1; } .seatinput .srole { width:130px; flex:0 0 130px; }
+    .actions { display:flex; gap:.5rem; margin-top:1rem; align-items:center; }
+    .note { background:var(--surface2); border:1px solid var(--border); border-left:3px solid var(--info); border-radius:8px; padding:.6rem .8rem; font-size:.76rem; color:var(--muted); margin-top:.7rem; }
+    .narrow.wiz { max-width:660px; }
+    .stepper { display:flex; align-items:center; gap:.7rem; margin:0 0 1.1rem; }
+    .stp { display:inline-flex; align-items:center; gap:.5rem; padding:.4rem .75rem; border-radius:999px; background:transparent; border:1px solid var(--border); color:var(--muted); cursor:pointer; font-size:.78rem; transition:all .15s; }
+    .stp:hover { color:var(--text); }
+    .stp .dot { width:21px; height:21px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:.7rem; background:var(--surface2); border:1px solid var(--border2); color:var(--muted); transition:all .15s; }
+    .stp.active { color:var(--accent); border-color:#1f5440; background:#10261d; }
+    .stp.active .dot { background:var(--accent); color:#0a0c0f; border-color:transparent; box-shadow:0 0 10px rgba(var(--accent-rgb),.45); }
+    .stp.done .dot { background:#10261d; color:var(--accent); border-color:#1f5440; }
+    .stp-sep { flex:1; height:1px; max-width:70px; background:linear-gradient(90deg, var(--border2), transparent); }
+    .wiz-foot { display:flex; align-items:center; justify-content:space-between; gap:.6rem; margin-top:1.3rem; padding-top:1rem; border-top:1px solid var(--border); }
+    .wiz-foot .hint { font-size:.74rem; color:var(--muted); }
+
+    /* hub */
+    .roomhead { display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; margin-bottom:1rem; }
+    .roomhead .task { font-size:1.2rem; font-weight:700; letter-spacing:-.01em; flex:1; min-width:240px; }
+    .roomhead .rid { font-family:var(--mono); font-size:.66rem; color:var(--faint); }
+    .pill { font-family:var(--mono); font-size:.66rem; padding:.18rem .5rem; border-radius:999px; border:1px solid var(--border2); color:var(--muted); white-space:nowrap; }
+    .pill.open { color:var(--info); border-color:#1e4a63; background:#0c2230; }
+    .pill.resolved { color:var(--accent); border-color:#1f5440; background:#10261d; box-shadow:0 0 14px rgba(var(--accent-rgb),.22); }
+    .pill.unsolvable { color:var(--error); border-color:#5e2733; background:#2a131a; }
+    .pill.mode { color:var(--violet); border-color:#3c3357; background:#181528; }
+
+    .grid { display:grid; grid-template-columns:280px 1fr 340px; gap:1.1rem; align-items:start; }
+    @media (max-width:1200px){ .grid { grid-template-columns:260px 1fr; } .grid .state { grid-column:1 / -1; } }
+    @media (max-width:820px){ .grid { grid-template-columns:1fr; } }
+    .col { background:linear-gradient(180deg, #161a20, #12151a); border:1px solid var(--border); border-radius:14px; box-shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.3); overflow:hidden; }
+    .col > h3 { padding:.85rem 1rem; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:.5rem; }
+    .col > h3::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--accent); flex:0 0 auto; }
+    .col > h3 .count { color:var(--faint); }
+    .col .body { padding:.8rem 1rem; }
+    .hub-empty { text-align:center; padding:5rem 1rem; color:var(--muted); }
+
+    .avatar { flex:0 0 auto; width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:.7rem; font-weight:700; color:#0a0c0f; }
+    .seat { display:flex; align-items:center; gap:.6rem; padding:.55rem 0; border-bottom:1px solid var(--border); }
+    .seat:last-of-type { border-bottom:none; }
+    .seat .meta { flex:1; min-width:0; }
+    .seat .name { font-weight:600; display:flex; align-items:center; gap:.4rem; }
+    .seat .sub { font-size:.7rem; color:var(--muted); font-family:var(--mono); }
+    .statusdot { width:7px; height:7px; border-radius:50%; display:inline-block; background:var(--faint); }
+    .s-joined { background:var(--accent); } .s-thinking { background:var(--warn); } .s-blocked { background:var(--error); } .s-done { background:var(--info); } .s-invited { background:var(--faint); }
+    .chip { font-family:var(--mono); font-size:.62rem; padding:.12rem .45rem; border-radius:999px; border:1px solid var(--border2); color:var(--muted); white-space:nowrap; }
+    .chip.agreed { color:var(--accent); border-color:#1f5440; background:#10261d; }
+    .chip.blocked { color:var(--error); border-color:#5e2733; background:#2a131a; }
+    .chip.pending { color:var(--warn); border-color:#5a4a1d; background:#241d0c; }
+    .chip.chair { color:var(--gold); border-color:#5c4d18; background:#221c08; }
+    .seatact { display:flex; gap:.35rem; margin:.4rem 0 .2rem; }
+    .seatact button { font-size:.68rem; padding:.28rem .5rem; }
+    .briefprev { margin:.2rem 0 .5rem; font-family:var(--mono); font-size:.68rem; white-space:pre-wrap; word-break:break-word; color:var(--muted); background:#0a0c0f; border:1px solid var(--border); border-radius:7px; padding:.5rem; max-height:220px; overflow:auto; }
+
+    .stream { padding:.4rem 0; max-height:64vh; min-height:260px; overflow-y:auto; }
+    .msg { display:flex; gap:.6rem; padding:.55rem 1rem; transition:background .12s; }
+    .msg:hover { background:rgba(255,255,255,.018); }
+    .msg .content { flex:1; min-width:0; }
+    .msg .line { display:flex; align-items:baseline; gap:.45rem; flex-wrap:wrap; }
+    .msg .who { font-weight:600; }
+    .msg .rolechip { font-family:var(--mono); font-size:.6rem; color:var(--faint); text-transform:uppercase; letter-spacing:.06em; }
+    .msg .time { margin-left:auto; font-family:var(--mono); font-size:.64rem; color:var(--faint); }
+    .msg .text { margin-top:.15rem; word-break:break-word; }
+    .badge { font-family:var(--mono); font-size:.6rem; font-weight:600; padding:.08rem .4rem; border-radius:5px; text-transform:uppercase; letter-spacing:.04em; }
+    .b-propose { color:var(--info); background:#0c2230; } .b-agree { color:var(--accent); background:#10261d; }
+    .b-block { color:var(--error); background:#2a131a; } .b-say { color:var(--muted); background:#1a1e25; }
+    .prop-title { font-weight:600; } .blockreason { color:var(--error); }
+    .msg.system { justify-content:center; padding:.5rem 1rem; }
+    .msg.system .sys { font-family:var(--mono); font-size:.68rem; color:var(--faint); text-align:center; border-top:1px dashed var(--border2); border-bottom:1px dashed var(--border2); padding:.3rem .8rem; }
+    .empty { color:var(--faint); text-align:center; padding:2rem 1rem; font-size:.8rem; }
+
+    .kv { font-size:.78rem; margin-bottom:.75rem; }
+    .kv .k { color:var(--muted); font-size:.66rem; text-transform:uppercase; letter-spacing:.06em; margin-bottom:.15rem; }
+    .proposal { border:1px solid var(--border2); border-left:2px solid rgba(var(--accent-rgb),.55); border-radius:8px; padding:.7rem; background:var(--surface2); }
+    .proposal .pv { font-family:var(--mono); font-size:.64rem; color:var(--faint); }
+    .proposal .ptext { margin-top:.35rem; white-space:pre-wrap; word-break:break-word; }
+    .stancewrap { display:flex; flex-wrap:wrap; gap:.3rem; margin-top:.55rem; }
+    .doc { font-family:var(--mono); font-size:.72rem; line-height:1.55; word-break:break-word; max-height:50vh; overflow:auto; }
+    .doc h4 { font-family:var(--sans); font-size:.9rem; margin:.2rem 0 .4rem; }
+    .doc h5 { font-family:var(--mono); font-size:.66rem; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin:.7rem 0 .2rem; }
+    .doc ul { margin:.2rem 0 .2rem 1.1rem; } .doc li { margin:.1rem 0; }
+
+    #toast { position:fixed; right:1rem; bottom:1rem; width:300px; display:flex; flex-direction:column; gap:.35rem; z-index:50; }
+    .toast { background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:8px; padding:.5rem .7rem; font-size:.72rem; box-shadow:var(--shadow); }
+    .toast.err { border-left-color:var(--error); color:#ffd7dd; }
   </style>
 </head>
-<body>
-  <h1>Wonderland — Console</h1>
-
-  <div class="card">
-    <h2>How this works</h2>
-    <p class="muted"><strong>Step 1 (once):</strong> add the hub to each agent's MCP client (below). <strong>Step 2 (per room):</strong> create a room and give each agent its join snippet — it calls <code>resolve_link</code> to get the task &amp; procedure from the hub, then negotiates on your behalf. One hub hosts many rooms; the token scopes each agent to its room. This page <strong>observes</strong>. Full guide: <code>CONNECTING.md</code>.</p>
-  </div>
-
-  <div class="card" id="setup">
-    <h2>Step 1 — add the hub to your agent (one-time)</h2>
-    <p class="muted" style="margin-bottom:0.4rem">MCP endpoint: <code id="mcpurl"></code>. Local clients only — a hosted web app can't reach your localhost (use a tunnel for remote agents).</p>
-    <label>Claude Code (native HTTP — easiest, no bridge)</label>
-    <div class="inline"><input id="cccmd" readonly /><button id="copyCc">copy</button></div>
-    <label>Claude Desktop (claude_desktop_config.json — bridges to the local hub)</label>
-    <textarea id="cfgjson" class="cfg" readonly style="min-height:120px"></textarea>
-    <button id="copyCfg">copy</button>
-    <p class="muted" style="margin-top:0.4rem">Claude Desktop only loads stdio servers, so this bridges via <code>mcp-remote</code>; restart Desktop after saving. Windows: if <code>npx</code> isn't found, use <code>"command":"cmd","args":["/c","npx","-y","mcp-remote","…"]</code>.</p>
-  </div>
-
-  <div class="card" id="create">
-    <h2>Create room</h2>
-    <label>Task</label>
-    <textarea id="task" style="min-height:60px">Checkout needs to charge cards and receive payment events</textarea>
-    <label>Facilitation</label>
-    <select id="facilitation">
-      <option value="auto">auto — the hub chairs the room (no facilitator needed)</option>
-      <option value="agent">agent — a facilitator agent drives the room</option>
-    </select>
-    <div id="parties"></div>
-    <div style="margin-top:0.6rem" class="inline">
-      <button class="sec" id="addParty">+ participant</button>
-      <button id="createBtn">Create room</button>
+<body data-route="landing">
+  <nav class="nav">
+    <a class="brand" href="#/landing"><span class="mark">◆</span> Wonderland</a>
+    <div class="links">
+      <a href="#/setup" data-route="setup">Setup</a>
+      <a href="#/hub" data-route="hub">Hub</a>
     </div>
-  </div>
+    <div class="spacer"></div>
+    <div class="health"><span class="dot" id="health"></span><span id="healthtxt">connecting…</span></div>
+  </nav>
 
-  <div id="board" hidden>
-    <div class="card">
-      <h2>Connect the agents</h2>
-      <p class="muted" style="margin-bottom:0.7rem">Paste each prompt into the matching agent. They join over MCP and drive the negotiation; you watch it unfold here.</p>
-      <div class="panels" id="conns"></div>
+  <!-- LANDING -->
+  <section class="view" data-route="landing" id="view-landing">
+    <div class="hero">
+      <canvas id="dots"></canvas>
+      <div class="hero-content">
+        <div class="logo"><span class="diamond">◆</span><span>Wonderland</span></div>
+        <p class="tagline">A hub where AI agents from different teams meet, propose, and agree on a solution to a task that spans their codebases — asynchronously, model-less, over MCP.</p>
+        <div class="cta">
+          <a class="btn btn-primary btn-lg" href="#/setup">Get started →</a>
+          <a class="btn btn-ghost btn-lg" href="#/hub">Open the hub</a>
+        </div>
+        <div class="hero-foot">model-less · MCP-native · in-house</div>
+      </div>
     </div>
-    <div class="row">
-      <div class="card"><h2>Room state <button class="sec" id="refreshBtn" style="float:right">refresh</button></h2><div id="state"></div></div>
-      <div class="card"><h2>Transcript</h2><div id="transcript"></div></div>
-    </div>
-    <div class="card"><h2>Document <button class="sec" id="docBtn" style="float:right">load doc</button></h2><pre id="doc" class="muted">— not finalized —</pre></div>
-  </div>
+  </section>
 
-  <div id="log"></div>
+  <!-- SETUP · STEP 1 — CONNECT -->
+  <section class="view" data-route="setup" id="view-setup" hidden>
+    <div class="narrow wiz">
+      <div class="page-head"><span class="ph-d">◆</span><h1>Set up a run</h1></div>
+      <p class="lead" style="margin-bottom:1.1rem">Two steps: connect each agent to the hub once, then create a room and hand each seat its invite.</p>
+      <div class="stepper">
+        <button class="stp" data-step="1"><span class="dot">1</span> Connect</button>
+        <span class="stp-sep"></span>
+        <button class="stp" data-step="2"><span class="dot">2</span> Create room</button>
+      </div>
+      <div class="card wiz-card">
+        <div class="step">
+          <div class="num">1</div>
+          <div class="body">
+            <h2>Connect an agent to the hub</h2>
+            <p class="lead">Each participating agent needs the Wonderland <strong>MCP server</strong> added to its client — once per machine. That gives the agent the tools it uses in a room (<code>resolve_link</code>, <code>join</code>, <code>post</code>, …). Local clients only; a hosted app can't reach your localhost (tunnel it for remote agents). Full guide: <code>CONNECTING.md</code>.</p>
+            <label>Claude Code — native HTTP</label>
+            <div class="copyrow"><input id="cccmd" readonly /><button id="copyCc">copy</button></div>
+            <label>Claude Desktop — claude_desktop_config.json</label>
+            <textarea id="cfgjson" readonly style="min-height:118px"></textarea>
+            <div style="display:flex; gap:.4rem; flex-wrap:wrap; margin-top:.4rem">
+              <button id="copyCfg">copy config</button>
+              <button id="copyPrompt" class="btn-ghost">copy setup prompt</button>
+            </div>
+            <div class="note">Desktop loads stdio servers only, so this bridges to the hub via <code>mcp-remote</code>; restart after saving. Or use <strong>copy setup prompt</strong> and paste it to an agent that can configure its own MCP.</div>
+          </div>
+        </div>
+        <div class="wiz-foot">
+          <span class="hint">Do this once per agent — then move on.</span>
+          <a class="btn btn-primary" href="#/create">Next: create a room →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETUP · STEP 2 — CREATE -->
+  <section class="view" data-route="create" id="view-create" hidden>
+    <div class="narrow wiz">
+      <div class="page-head"><span class="ph-d">◆</span><h1>Set up a run</h1></div>
+      <p class="lead" style="margin-bottom:1.1rem">Two steps: connect each agent to the hub once, then create a room and hand each seat its invite.</p>
+      <div class="stepper">
+        <button class="stp" data-step="1"><span class="dot">1</span> Connect</button>
+        <span class="stp-sep"></span>
+        <button class="stp" data-step="2"><span class="dot">2</span> Create room</button>
+      </div>
+      <div class="card wiz-card">
+        <div class="step">
+          <div class="num">2</div>
+          <div class="body">
+            <h2>Create a room</h2>
+            <p class="lead">A <strong>room</strong> is one task plus the <strong>seats</strong> you invite (each seat is one agent/model) and who chairs it. <strong>auto</strong> — the hub closes the room itself the moment every seat agrees (no facilitator). <strong>agent</strong> — add one neutral <em>facilitator</em> seat that declares the outcome.</p>
+            <label>Task</label>
+            <textarea id="task" style="min-height:60px">Checkout needs to charge cards and receive payment events</textarea>
+            <label>Facilitation</label>
+            <select id="facilitation">
+              <option value="auto">auto — the hub chairs it (no facilitator needed)</option>
+              <option value="agent">agent — a facilitator agent drives it</option>
+            </select>
+            <label>Seats — the agents you're inviting</label>
+            <div id="seats"></div>
+            <div class="actions">
+              <button class="btn-ghost" id="addSeat">+ add seat</button>
+            </div>
+          </div>
+        </div>
+        <div class="wiz-foot">
+          <a class="btn btn-ghost" href="#/setup">← Back</a>
+          <button class="btn-primary" id="createBtn">Create room &amp; open hub →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HUB -->
+  <section class="view" data-route="hub" id="view-hub" hidden>
+    <div class="wrap">
+      <div id="hubEmpty" class="hub-empty">
+        <div class="logo" style="font-size:2rem; justify-content:center; opacity:.5"><span class="diamond">◆</span></div>
+        <p style="margin-top:1rem">No active run yet.</p>
+        <a class="btn btn-primary" href="#/setup" style="margin-top:1rem">Create a room →</a>
+      </div>
+
+      <div id="hubBoard" hidden>
+        <div class="roomhead">
+          <div>
+            <div class="task" id="bTask">—</div>
+            <div class="rid" id="bRid"></div>
+          </div>
+          <span class="pill" id="bStatus">—</span>
+          <span class="pill mode" id="bMode">—</span>
+          <span class="pill" id="bRound">round 0</span>
+          <span class="pill" id="bOutcome" hidden></span>
+          <button class="btn-ghost" id="newRoom">← new room</button>
+        </div>
+        <div class="grid">
+          <div class="col">
+            <h3>Seats <span class="count" id="seatCount"></span></h3>
+            <div class="body" id="seatList"></div>
+          </div>
+          <div class="col">
+            <h3>Transcript</h3>
+            <div class="stream" id="stream"><div class="empty">No messages yet.</div></div>
+          </div>
+          <div class="col state">
+            <h3>Room state</h3>
+            <div class="body" id="stateBody"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="toast"></div>
 
   <script>
     const $ = (s, r = document) => r.querySelector(s);
-    let LINKS = [], FAC = null;
+    const PALETTE = ['#38bdf8', '#34d399', '#f472b6', '#fbbf24', '#a78bfa', '#fb7185', '#22d3ee', '#a3e635'];
+    let mcp = location.origin + '/mcp';   // overridden by /api/config (PUBLIC_URL) in production
 
-    function log(msg, err) {
+    let TOKENS = {};        // team -> token
+    let INVITES = {};       // team -> paste-ready invite (from the hub)
+    let ANYTOKEN = null;    // any token, for observer reads
+    let SEATS = {};         // participant id -> { team, role, status, color }
+    let lastMsgId = null;
+    const renderedIds = new Set();
+    let docLoaded = false, DOC_TEXT = '';
+    let timer = null, currentRoute = 'landing';
+
+    /* ---------- helpers ---------- */
+    function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+    function toast(msg, err) {
       const el = document.createElement('div');
-      el.className = 'logline' + (err ? ' err' : '');
+      el.className = 'toast' + (err ? ' err' : '');
       el.textContent = (err ? '✗ ' : '✓ ') + msg;
-      $('#log').prepend(el);
-      setTimeout(() => el.remove(), 12000);
+      $('#toast').prepend(el);
+      setTimeout(() => el.remove(), 9000);
     }
     async function api(path, body) {
       const res = await fetch('/api/' + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {}) });
@@ -117,140 +356,298 @@
       return data;
     }
     async function copy(text) {
-      try { await navigator.clipboard.writeText(text); log('copied to clipboard'); }
-      catch (e) { log('copy failed — select the text manually', true); }
+      try { await navigator.clipboard.writeText(text); toast('copied to clipboard'); }
+      catch (e) { toast('copy failed — select the text manually', true); }
     }
+    function setHealth(up) { $('#health').className = 'dot ' + (up ? 'up' : 'down'); $('#healthtxt').textContent = up ? 'live' : 'offline'; }
+    function initials(team) { const p = String(team).trim().split(/\s+/); return (p.length >= 2 ? p[0][0] + p[1][0] : String(team).trim().slice(0, 2)).toUpperCase(); }
+    function avatarStyle(color) { return 'background:' + color + (color.charAt(0) === '#' ? ';box-shadow:0 0 10px ' + color + '66' : ''); }
+    function fmtTime(ts) { try { return new Date(ts).toLocaleTimeString(); } catch (e) { return ''; } }
+    function inviteSnippet(token) { return 'You\'re invited to a meeting in Wonderland. Your token is "' + token + '" — resolve link and join.'; }
+    function saveRoom() { try { localStorage.setItem('wl_room', JSON.stringify({ tokens: TOKENS, invites: INVITES, any: ANYTOKEN })); } catch (e) {} }
+    function loadRoom() { try { const s = JSON.parse(localStorage.getItem('wl_room') || 'null'); if (s && s.any) { TOKENS = s.tokens || {}; INVITES = s.invites || {}; ANYTOKEN = s.any; } } catch (e) {} }
+    function clearRoom() { TOKENS = {}; INVITES = {}; ANYTOKEN = null; lastMsgId = null; docLoaded = false; DOC_TEXT = ''; renderedIds.clear(); try { localStorage.removeItem('wl_room'); } catch (e) {} }
 
-    function partyRow(team, role) {
+    /* ---------- dot-matrix landing animation ---------- */
+    const canvas = $('#dots'), cx = canvas.getContext('2d');
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let raf = null, mouse = { x: -9999, y: -9999 };
+    function sizeCanvas() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      canvas.width = Math.max(1, Math.floor(w * dpr)); canvas.height = Math.max(1, Math.floor(h * dpr));
+      cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    function drawDots(time) {
+      const w = canvas.clientWidth, h = canvas.clientHeight, GAP = 30;
+      cx.clearRect(0, 0, w, h);
+      const tt = time * 0.0006;
+      for (let y = GAP / 2; y < h; y += GAP) {
+        for (let x = GAP / 2; x < w; x += GAP) {
+          const wave = Math.sin(x * 0.025 + tt * 1.3) + Math.cos(y * 0.025 - tt);
+          const n = (wave + 2) / 4; // 0..1
+          const dx = x - mouse.x, dy = y - mouse.y, dist = Math.sqrt(dx * dx + dy * dy);
+          const glow = Math.max(0, 1 - dist / 170);
+          const alpha = 0.05 + n * 0.10 + glow * 0.40;
+          const rad = 1.1 + n * 0.6 + glow * 1.6;
+          cx.beginPath();
+          cx.arc(x, y, rad, 0, Math.PI * 2);
+          cx.fillStyle = 'rgba(' + getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim() + ',' + alpha.toFixed(3) + ')';
+          cx.fill();
+        }
+      }
+    }
+    let lastFrame = 0;
+    function loop(time) { if (time - lastFrame > 33) { drawDots(time); lastFrame = time; } raf = requestAnimationFrame(loop); }
+    function startDots() {
+      sizeCanvas();
+      if (reduceMotion) { drawDots(0); return; }
+      if (!raf) raf = requestAnimationFrame(loop);
+    }
+    function stopDots() { if (raf) { cancelAnimationFrame(raf); raf = null; } }
+    window.addEventListener('resize', () => { if (currentRoute === 'landing') { sizeCanvas(); if (reduceMotion) drawDots(0); } });
+    canvas.addEventListener('pointermove', (e) => { const r = canvas.getBoundingClientRect(); mouse = { x: e.clientX - r.left, y: e.clientY - r.top }; });
+    canvas.addEventListener('pointerleave', () => { mouse = { x: -9999, y: -9999 }; });
+
+    /* ---------- setup ---------- */
+    function seatInputRow(team, role) {
       const div = document.createElement('div');
-      div.className = 'party inline';
-      div.style.marginTop = '0.4rem';
+      div.className = 'seatinput';
       div.innerHTML =
-        '<input class="pteam" value="' + team + '" style="flex:1" />' +
-        '<select class="prole" style="width:130px;flex:0 0 130px"><option value="participant">participant</option><option value="facilitator">facilitator</option></select>';
-      $('#parties').appendChild(div);
-      div.querySelector('.prole').value = role;
-      return div;
+        '<input class="steam" placeholder="team / model name" value="' + esc(team) + '" />' +
+        '<select class="srole"><option value="participant">participant</option><option value="facilitator">facilitator</option></select>' +
+        '<button class="icon rm" title="remove">✕</button>';
+      div.querySelector('.srole').value = role;
+      div.querySelector('.rm').onclick = () => div.remove();
+      $('#seats').appendChild(div);
     }
-
-    function connectSnippet(link) {
-      return `You're invited to a meeting in Wonderland. Your token is "${link.token}" resolve link and join.`;
-    }
-
-    function renderConnections() {
-      const wrap = $('#conns');
-      wrap.innerHTML = '';
-      LINKS.forEach((link) => {
-        const snippet = connectSnippet(link);
-        const c = document.createElement('div');
-        c.className = 'panel ' + link.role;
-        c.innerHTML =
-          '<div class="ptitle">' + link.team + ' <span class="tag">' + link.role + '</span></div>' +
-          '<label>invitation — paste to your agent (it learns its role on join)</label>' +
-          '<textarea class="connect" readonly></textarea>' +
-          '<div class="inline"><button class="copyConnect">copy</button><button class="sec previewBtn">preview briefing</button></div>' +
-          '<pre class="briefing muted" style="margin-top:0.45rem">—</pre>';
-        c.querySelector('.connect').value = snippet;
-        c.querySelector('.copyConnect').onclick = () => copy(snippet);
-        const pre = c.querySelector('.briefing');
-        c.querySelector('.previewBtn').onclick = async () => {
-          try {
-            const b = await api('resolve', { token: link.token });
-            pre.textContent =
-              'task: ' + b.task + '\n\nprocedure:\n' + b.procedure +
-              '\n\nyour role — ' + b.yourRole + ' (' + b.yourTeam + '):\n' + b.instructions +
-              '\n\nattendees: ' + b.attendees.map((a) => a.team + '/' + a.role).join(', ');
-            pre.classList.remove('muted');
-          } catch (e) { log('preview: ' + e.message, true); }
-        };
-        wrap.appendChild(c);
-      });
-    }
-
     async function createRoom() {
       const task = $('#task').value.trim();
       const facilitation = $('#facilitation').value;
-      const parties = [...document.querySelectorAll('.party')].map((p) => ({
-        team: p.querySelector('.pteam').value.trim(),
-        role: p.querySelector('.prole').value,
-      }));
+      const parties = [...document.querySelectorAll('#seats .seatinput')]
+        .map((r) => ({ team: r.querySelector('.steam').value.trim(), role: r.querySelector('.srole').value }))
+        .filter((p) => p.team);
       try {
         const r = await api('rooms', { task, facilitation, parties });
-        LINKS = r.links;
-        FAC = (LINKS.find((l) => l.role === 'facilitator') || LINKS[0] || {}).token;
-        log('room ' + r.roomId + ' created — hand the prompts to your agents');
-        $('#board').hidden = false;
-        renderConnections();
-        refresh();
-      } catch (e) { log(e.message, true); }
+        clearRoom();
+        r.links.forEach((l) => { TOKENS[l.team] = l.token; INVITES[l.team] = l.invite; });
+        ANYTOKEN = r.links[0] ? r.links[0].token : null;
+        saveRoom();
+        $('#stream').innerHTML = '<div class="empty">No messages yet.</div>';
+        toast('room ' + r.roomId + ' created — hand each seat its invite');
+        location.hash = '#/hub';
+      } catch (e) { toast(e.message, true); }
     }
 
-    function teamName(s, id) {
-      const p = s.participants.find((x) => x.id === id);
-      return p ? p.team : id;
+    /* ---------- hub board ---------- */
+    function stanceFor(snap, p) {
+      if (p.role === 'facilitator') return { cls: 'chair', label: 'chair' };
+      if (!snap.proposal) return { cls: '', label: '—' };
+      if (snap.proposal.agreed.includes(p.id)) return { cls: 'agreed', label: 'agreed' };
+      if (snap.proposal.blocked.includes(p.id)) return { cls: 'blocked', label: 'blocked' };
+      return { cls: 'pending', label: 'pending' };
+    }
+    function renderHead(snap) {
+      $('#bTask').textContent = snap.task;
+      $('#bRid').textContent = snap.roomId;
+      const st = $('#bStatus'); st.textContent = snap.status; st.className = 'pill ' + snap.status;
+      $('#bMode').textContent = snap.facilitation;
+      $('#bRound').textContent = 'round ' + snap.round;
+      const oc = $('#bOutcome');
+      if (snap.outcome) { oc.hidden = false; oc.textContent = snap.outcome; oc.className = 'pill ' + snap.outcome; } else { oc.hidden = true; }
+    }
+    function renderSeats(snap) {
+      $('#seatCount').textContent = snap.participants.length;
+      const wrap = $('#seatList'); wrap.innerHTML = '';
+      snap.participants.forEach((p) => {
+        const seat = SEATS[p.id], st = stanceFor(snap, p);
+        const row = document.createElement('div');
+        row.className = 'seat';
+        row.innerHTML =
+          '<div class="avatar" style="' + avatarStyle(seat.color) + '">' + esc(initials(p.team)) + '</div>' +
+          '<div class="meta"><div class="name">' + esc(p.team) + ' <span class="statusdot s-' + p.status + '" title="' + p.status + '"></span></div>' +
+          '<div class="sub">' + p.role + ' · ' + p.status + '</div></div>' +
+          '<span class="chip ' + st.cls + '">' + st.label + '</span>';
+        wrap.appendChild(row);
+        const token = TOKENS[p.team];
+        if (token) {
+          const act = document.createElement('div');
+          act.className = 'seatact';
+          act.innerHTML = '<button class="copyInv">copy invite</button><button class="briefBtn btn-ghost">briefing</button>';
+          const prev = document.createElement('pre'); prev.className = 'briefprev'; prev.hidden = true;
+          act.querySelector('.copyInv').onclick = () => copy(INVITES[p.team] || inviteSnippet(token));
+          act.querySelector('.briefBtn').onclick = async () => {
+            if (!prev.hidden) { prev.hidden = true; return; }
+            try { const b = await api('resolve', { token });
+              prev.textContent = 'task: ' + b.task + '\n\nrole: ' + b.yourRole + ' (' + b.yourTeam + ')\n\nprocedure:\n' + b.procedure + '\n\ninstructions:\n' + b.instructions;
+              prev.hidden = false;
+            } catch (e) { toast('briefing: ' + e.message, true); }
+          };
+          wrap.appendChild(act); wrap.appendChild(prev);
+        }
+      });
+    }
+    function seatLabel(id) { return SEATS[id] ? SEATS[id].team : id; }
+    function payloadHtml(m) {
+      const p = m.payload || {};
+      if (m.act === 'propose') return (p.title ? '<span class="prop-title">' + esc(p.title) + '</span><br/>' : '') + esc(p.text || '');
+      if (m.act === 'agree') return p.note ? esc(p.note) : '<span class="muted">agrees with the current proposal</span>';
+      if (m.act === 'block') return '<span class="blockreason">⊘ ' + esc(p.reason || '') + '</span>';
+      if (m.act === 'say') return esc(p.text || '');
+      return esc(JSON.stringify(p));
+    }
+    function bubble(m) {
+      const div = document.createElement('div');
+      if (m.from === 'system') { div.className = 'msg system'; div.innerHTML = '<div class="sys">' + payloadHtml(m) + '</div>'; return div; }
+      const seat = SEATS[m.from] || { team: m.from, role: '', color: 'var(--faint)' };
+      div.className = 'msg';
+      div.innerHTML =
+        '<div class="avatar" style="' + avatarStyle(seat.color) + '">' + esc(initials(seat.team)) + '</div>' +
+        '<div class="content"><div class="line">' +
+          '<span class="who">' + esc(seat.team) + '</span>' +
+          (seat.role ? '<span class="rolechip">' + seat.role + '</span>' : '') +
+          '<span class="badge b-' + m.act + '">' + m.act + '</span>' +
+          '<span class="time">' + fmtTime(m.ts) + '</span>' +
+        '</div><div class="text">' + payloadHtml(m) + '</div></div>';
+      return div;
+    }
+    function appendMessages(msgs) {
+      const box = $('#stream'); const ph = box.querySelector('.empty');
+      if (ph && msgs.length) ph.remove();
+      const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+      msgs.forEach((m) => { if (renderedIds.has(m.id)) return; renderedIds.add(m.id); box.appendChild(bubble(m)); });
+      if (atBottom) box.scrollTop = box.scrollHeight;
+    }
+    function chipList(ids, cls) { return ids.length ? ids.map((id) => '<span class="chip ' + cls + '">' + esc(seatLabel(id)) + '</span>').join(' ') : '<span class="faint">—</span>'; }
+    function renderState(snap) {
+      const p = snap.proposal;
+      let html = '<div class="kv"><div class="k">summary</div>' + (snap.summary ? esc(snap.summary) : '<span class="faint">—</span>') + '</div>';
+      html += '<div class="kv"><div class="k">current proposal</div>';
+      if (p) {
+        html += '<div class="proposal"><div class="pv">v' + p.version + ' · proposed by ' + esc(seatLabel(p.by)) + '</div>' +
+          (p.title ? '<div class="prop-title" style="margin-top:.3rem">' + esc(p.title) + '</div>' : '') +
+          '<div class="ptext">' + esc(p.text) + '</div>' +
+          '<div class="stancewrap">' + chipList(p.agreed, 'agreed') + (p.blocked.length ? ' ' + chipList(p.blocked, 'blocked') : '') + '</div></div>';
+      } else { html += '<span class="faint">none yet</span>'; }
+      html += '</div>';
+      if (snap.status !== 'closed') html += '<div class="kv"><div class="k">awaiting agreement</div>' + chipList(snap.pending, 'pending') + '</div>';
+      html += '<div id="docMount"></div>';
+      $('#stateBody').innerHTML = html;
+      if (docLoaded) mountDoc();
+    }
+    function mdLite(text) {
+      const lines = esc(text).split('\n'); let out = '', inList = false;
+      const close = () => { if (inList) { out += '</ul>'; inList = false; } };
+      for (const raw of lines) {
+        const line = raw.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        if (/^## /.test(line)) { close(); out += '<h5>' + line.slice(3) + '</h5>'; }
+        else if (/^# /.test(line)) { close(); out += '<h4>' + line.slice(2) + '</h4>'; }
+        else if (/^- /.test(line)) { if (!inList) { out += '<ul>'; inList = true; } out += '<li>' + line.slice(2) + '</li>'; }
+        else if (line.trim() === '') { close(); }
+        else { close(); out += '<div>' + line + '</div>'; }
+      }
+      close(); return out;
+    }
+    function mountDoc() { const m = $('#docMount'); if (m) m.innerHTML = '<div class="kv" style="margin-top:.4rem"><div class="k">document</div><div class="doc">' + mdLite(DOC_TEXT) + '</div></div>'; }
+    function renderRoom(snap) {
+      SEATS = {};
+      snap.participants.forEach((p, i) => { SEATS[p.id] = { team: p.team, role: p.role, status: p.status, color: PALETTE[i % PALETTE.length] }; });
+      SEATS['system'] = { team: 'hub', role: 'system', color: 'var(--faint)' };
+      renderHead(snap); renderSeats(snap); renderState(snap);
+    }
+    async function poll() {
+      if (!ANYTOKEN) return;
+      let snap;
+      try { snap = await api('snapshot', { token: ANYTOKEN }); setHealth(true); }
+      catch (e) { setHealth(false); return; }
+      renderRoom(snap);
+      try { const msgs = await api('read', lastMsgId ? { token: ANYTOKEN, since: lastMsgId } : { token: ANYTOKEN }); if (msgs.length) { appendMessages(msgs); lastMsgId = msgs[msgs.length - 1].id; } } catch (e) {}
+      if (snap.status === 'closed' && !docLoaded) { try { const d = await api('doc', { token: ANYTOKEN }); DOC_TEXT = d.doc; docLoaded = true; mountDoc(); } catch (e) {} }
+    }
+    function ensurePolling() { if (!timer) timer = setInterval(() => { if (currentRoute === 'hub' && ANYTOKEN) poll(); else if (!ANYTOKEN) ping(); }, 1500); }
+
+    /* ---------- router ---------- */
+    const ROUTES = ['landing', 'setup', 'create', 'hub'];
+    let prevRoute = null;
+    function router() {
+      let r = location.hash.replace(/^#\/?/, '');
+      if (!ROUTES.includes(r)) r = 'landing';
+      currentRoute = r;
+      document.body.dataset.route = r;
+      document.querySelectorAll('.view').forEach((v) => { v.hidden = v.dataset.route !== r; });
+      // nav: the Setup link stays active across both wizard steps
+      document.querySelectorAll('.nav .links a').forEach((a) => {
+        const ro = a.dataset.route;
+        a.classList.toggle('active', ro === r || (ro === 'setup' && r === 'create'));
+      });
+      // wizard stepper state
+      const step = r === 'create' ? 2 : 1;
+      document.querySelectorAll('.stp').forEach((s) => {
+        const n = +s.dataset.step;
+        s.classList.toggle('active', n === step);
+        s.classList.toggle('done', n < step);
+      });
+      // directional slide for the wizard card
+      if (r === 'setup' || r === 'create') {
+        const card = document.querySelector('#view-' + r + ' .wiz-card');
+        if (card) {
+          const dir = (r === 'setup' && prevRoute === 'create') ? 'left' : 'right';
+          card.classList.remove('anim-left', 'anim-right');
+          void card.offsetWidth;
+          card.classList.add('anim-' + dir);
+        }
+      }
+      if (r === 'landing') startDots(); else stopDots();
+      if (r === 'hub') {
+        const has = !!ANYTOKEN;
+        $('#hubEmpty').hidden = has; $('#hubBoard').hidden = !has;
+        if (has) poll();
+      }
+      prevRoute = r;
+      window.scrollTo(0, 0);
     }
 
-    function renderState(s) {
-      const p = s.proposal;
-      const proposalHtml = p
-        ? ('v' + p.version + ' by ' + escapeHtml(teamName(s, p.by)) + (p.title ? ' — <strong>' + escapeHtml(p.title) + '</strong>' : '') +
-           '<br/>' + escapeHtml(p.text) +
-           '<br/><span class="muted">agreed: [' + p.agreed.map((id) => escapeHtml(teamName(s, id))).join(', ') + ']' +
-           (p.blocked.length ? ' · blocked: [' + p.blocked.map((id) => escapeHtml(teamName(s, id))).join(', ') + ']' : '') + '</span>')
-        : '<span class="muted">none yet</span>';
-      const pending = s.pending.map((id) => teamName(s, id));
-      const pendingHtml = s.status === 'closed'
-        ? '<span class="muted">—</span>'
-        : (pending.length ? escapeHtml(pending.join(', ')) : '<span style="color:var(--success)">all agreed</span>');
-      $('#state').innerHTML =
-        '<table>' +
-        '<tr><th>room</th><td>' + s.roomId + '</td></tr>' +
-        '<tr><th>status</th><td><strong style="color:var(--accent)">' + s.status + '</strong> <span class="tag">' + s.facilitation + '</span> <span class="tag">round ' + s.round + '</span> ' + (s.outcome ? '<span class="tag">' + s.outcome + '</span>' : '') + '</td></tr>' +
-        '<tr><th>task</th><td>' + escapeHtml(s.task) + '</td></tr>' +
-        '<tr><th>summary</th><td>' + (s.summary ? escapeHtml(s.summary) : '<span class="muted">—</span>') + '</td></tr>' +
-        '<tr><th>proposal</th><td>' + proposalHtml + '</td></tr>' +
-        '<tr><th>pending</th><td>' + pendingHtml + '</td></tr>' +
-        '</table>' +
-        '<table style="margin-top:0.5rem"><tr><th>team</th><th>role</th><th>status</th></tr>' +
-        s.participants.map((pp) => '<tr><td>' + escapeHtml(pp.team) + '</td><td>' + pp.role + '</td><td>' + pp.status + '</td></tr>').join('') +
-        '</table>';
+    /* ---------- wiring ---------- */
+    function renderMcpFields() {
+      $('#cccmd').value = 'claude mcp add --transport http wonderland ' + mcp;
+      $('#cfgjson').value = JSON.stringify({ mcpServers: { wonderland: { command: 'npx', args: ['-y', 'mcp-remote', mcp] } } }, null, 2);
     }
-
-    function renderTranscript(msgs) {
-      $('#transcript').innerHTML = msgs.length
-        ? msgs.map((m) => '<div class="msg"><span class="act">' + m.act + '</span> <span class="muted">' + m.from + '</span><br/>' + escapeHtml(JSON.stringify(m.payload)) + '</div>').join('')
-        : '<span class="muted">— empty —</span>';
+    function setupPrompt() {
+      return [
+        'Please connect yourself to the Wonderland MCP hub so you can join collaboration rooms.',
+        '',
+        'If you are Claude Code (or any client with an MCP CLI), run:',
+        '  claude mcp add --transport http wonderland ' + mcp,
+        '',
+        'If you use a config file (e.g. Claude Desktop — claude_desktop_config.json), add this under "mcpServers" and restart the app:',
+        JSON.stringify({ wonderland: { command: 'npx', args: ['-y', 'mcp-remote', mcp] } }, null, 2),
+        '',
+        'Then confirm: list your tools and check you can see the Wonderland tools (resolve_link, join, post, …).',
+      ].join('\n');
     }
-
-    function escapeHtml(s) { return String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
-
-    async function refresh() {
-      if (!FAC) return;
-      try { renderState(await api('snapshot', { token: FAC })); } catch (e) { /* transient */ }
-      try { renderTranscript(await api('read', { token: FAC })); } catch (e) { /* transient */ }
+    async function loadConfig() {
+      try { const c = await (await fetch('/api/config')).json(); if (c && c.mcpUrl) mcp = c.mcpUrl; } catch (e) { /* dev: use the page origin */ }
+      renderMcpFields();
     }
-
-    $('#addParty').onclick = () => partyRow('C', 'participant');
-    $('#createBtn').onclick = createRoom;
-    $('#refreshBtn').onclick = refresh;
-    $('#docBtn').onclick = async () => {
-      try { const r = await api('doc', { token: FAC }); $('#doc').textContent = r.doc; $('#doc').classList.remove('muted'); }
-      catch (e) { log('doc: ' + e.message, true); }
-    };
-
-    const mcp = location.origin + '/mcp';
-    $('#mcpurl').textContent = mcp;
-    $('#cccmd').value = 'claude mcp add --transport http wonderland ' + mcp;
-    $('#cfgjson').value = JSON.stringify(
-      { mcpServers: { wonderland: { command: 'npx', args: ['-y', 'mcp-remote', mcp] } } },
-      null,
-      2,
-    );
+    renderMcpFields();
+    loadConfig();
     $('#copyCc').onclick = () => copy($('#cccmd').value);
     $('#copyCfg').onclick = () => copy($('#cfgjson').value);
-    partyRow('Claude', 'participant');
-    partyRow('ChatGPT', 'participant');
-    setInterval(refresh, 2000);
+    $('#copyPrompt').onclick = () => copy(setupPrompt());
+    $('#addSeat').onclick = () => seatInputRow('', 'participant');
+    $('#createBtn').onclick = createRoom;
+    document.querySelectorAll('.stp').forEach((s) => { s.onclick = () => { location.hash = s.dataset.step === '2' ? '#/create' : '#/setup'; }; });
+    $('#newRoom').onclick = () => { clearRoom(); location.hash = '#/setup'; };
+    seatInputRow('Claude', 'participant');
+    seatInputRow('ChatGPT', 'participant');
+
+    async function ping() { try { await fetch('/mcp', { method: 'GET' }); setHealth(true); } catch (e) { setHealth(false); } }
+
+    loadRoom();
+    window.addEventListener('hashchange', router);
+    router();
+    ping();
+    ensurePolling();
   </script>
 </body>
 </html>

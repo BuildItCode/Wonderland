@@ -24,8 +24,12 @@ function send(res: Response, fn: () => unknown): void {
  * A thin REST façade over {@link HubService} for the browser test UI. Each route maps
  * 1:1 onto a service operation; this layer holds no logic of its own.
  */
-export function createRestRouter(service: HubService): Router {
+export function createRestRouter(service: HubService, publicUrl?: string): Router {
   const router = Router();
+
+  // Lets the static console learn the hub's public MCP URL in production (falls back to the page origin).
+  const base = publicUrl ? publicUrl.replace(/\/+$/, '') : null;
+  router.get('/config', (_req, res) => res.json({ mcpUrl: base ? base + '/mcp' : null }));
 
   router.post('/rooms', (req, res) => send(res, () => service.createRoom(req.body)));
   router.post('/resolve', (req, res) => send(res, () => service.resolveLink(req.body.token)));

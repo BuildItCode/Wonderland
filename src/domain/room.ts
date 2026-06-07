@@ -48,13 +48,15 @@ export const participantSchema = z
 /** A facilitator or working participant occupying a room. */
 export type Participant = z.infer<typeof participantSchema>;
 
-/** A bearer token addressing exactly one role in one room. */
+/** A bearer token addressing exactly one role in one room, plus a ready-to-share invite. */
 export const roleLinkSchema = z
   .object({
     token: idSchema,
     roomId: idSchema,
     role: roleSchema,
     team: z.string().min(1),
+    /** Paste-ready invitation for this seat — give it to the participant to join. */
+    invite: z.string().min(1),
   })
   .strict();
 

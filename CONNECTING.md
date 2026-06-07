@@ -57,7 +57,7 @@ Claude Code (and other HTTP-capable MCP clients) can point straight at the Strea
 
 ## 2. Create a room
 
-Use the console at `http://localhost:4000/` (choose facilitation, name the teams), or call the `create_room` tool from any connected agent. `create_room` takes the **task**, a **facilitation** mode (`auto` — the hub chairs it, the default; or `agent` — a facilitator agent drives it), and the **parties**. You get back one role-link per party.
+Use the console at `http://localhost:4000/` — its **Setup** wizard walks you through step 1 (connect an agent) and step 2 (create a room: task, facilitation, seats) — or call the `create_room` tool from any connected agent. `create_room` takes the **task**, a **facilitation** mode (`auto` — the hub chairs it, the default; or `agent` — a facilitator agent drives it), and the **parties**. You get back one role-link per party — each with a **paste-ready invite** to forward to that participant — and the console's **Hub** page lets you watch the run. (So you can also just tell a connected agent *"create a room for X with 3 seats"* and it will hand you the three invites.)
 
 **How a room works.** Participants discuss freely with the `say` act. When someone has a candidate solution they `propose` it (plain text). Every participant then `agree`s, or `block`s with a reason. A room is **resolved** once every participant has agreed to the *current* proposal — a new `propose` supersedes the previous one and resets agreement. If the blockers prove irreconcilable it ends **unsolvable**. Either way a decision doc is written on close. (Agreeing in prose doesn't count — only a `propose` plus everyone's `agree` advances the room.)
 
@@ -97,4 +97,4 @@ The hub still cannot *wake* a dormant agent — every participant must be a **li
 
 ## Quick local demo without an LLM
 
-The console (`/`) is a read-only observer. To drive a room by hand for testing, use the REST mirror at `/api/*` (see `src/transport/rest.ts`) — e.g. `POST /api/rooms`, `/api/join`, `/api/post` (act `propose`/`agree`/`block`/`say`), `/api/snapshot`, `/api/doc`.
+The console's **Hub** page is a read-only observer. To drive a room by hand for testing, use the REST mirror at `/api/*` (see `src/transport/rest.ts`) — e.g. `POST /api/rooms`, `/api/join`, `/api/post` (act `propose`/`agree`/`block`/`say`), `/api/snapshot`, `/api/doc`.

@@ -12,6 +12,12 @@ const METHOD_NOT_ALLOWED = {
   error: { code: 'METHOD_NOT_ALLOWED', message: 'Use POST for the stateless MCP endpoint.' },
 };
 
+/** Options for {@link createHubServer}. */
+export interface HubServerOptions {
+  /** Public base URL the hub is reached at; surfaced to the console via `GET /api/config`. */
+  publicUrl?: string;
+}
+
 /** Build an MCP server instance with the hub tool surface registered. */
 export function createMcpServer(service: HubService): McpServer {
   const server = new McpServer(SERVER_INFO);
@@ -25,9 +31,14 @@ export function createMcpServer(service: HubService): McpServer {
  * The endpoint is stateless: each request gets a fresh server + transport, because
  * all room state lives in the store, not in the MCP session.
  */
-export function createHubServer(service: HubService): Express {
+export function createHubServer(service: HubService, options: HubServerOptions = {}): Express {
   const app = express();
   app.use(express.json());
+
+  // Liveness probe (for Railway / any platform healthcheck).
+  app.get('/health', (_req, res) => {
+    res.json({ status: 'ok' });
+  });
 
   app.post('/mcp', async (req, res) => {
     const server = createMcpServer(service);
@@ -54,7 +65,7 @@ export function createHubServer(service: HubService): Express {
   });
 
   // REST façade + static test UI
-  app.use('/api', createRestRouter(service));
+  app.use('/api', createRestRouter(service, options.publicUrl));
   app.use(express.static(fileURLToPath(new URL('./public', import.meta.url))));
 
   return app;

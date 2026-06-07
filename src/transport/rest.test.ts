@@ -4,9 +4,9 @@ import { openDatabase, createStore } from '../store/index.js';
 import { createEngine } from '../engine/index.js';
 import { createHubServer } from './index.js';
 
-async function boot(): Promise<{ base: string; stop: () => Promise<void> }> {
+async function boot(opts?: { publicUrl?: string }): Promise<{ base: string; stop: () => Promise<void> }> {
   const db = openDatabase(':memory:');
-  const app = createHubServer(createEngine({ store: createStore(db) }));
+  const app = createHubServer(createEngine({ store: createStore(db) }), opts);
   const server = app.listen(0);
   await new Promise<void>((resolve) => server.once('listening', resolve));
   const { port } = server.address() as AddressInfo;
@@ -52,6 +52,28 @@ describe('REST façade', () => {
       participants: unknown[];
     };
     expect(snap.participants).toHaveLength(3);
+    await stop();
+  });
+
+  it('serves the configured public MCP url at /api/config (normalizing a trailing slash)', async () => {
+    const { base, stop } = await boot({ publicUrl: 'https://hub.example.com/' });
+    const cfg = (await (await fetch(base + '/api/config')).json()) as { mcpUrl: string | null };
+    expect(cfg.mcpUrl).toBe('https://hub.example.com/mcp');
+    await stop();
+  });
+
+  it('returns a null mcp url when no public url is configured (dev)', async () => {
+    const { base, stop } = await boot();
+    const cfg = (await (await fetch(base + '/api/config')).json()) as { mcpUrl: string | null };
+    expect(cfg.mcpUrl).toBeNull();
+    await stop();
+  });
+
+  it('answers the health probe', async () => {
+    const { base, stop } = await boot();
+    const res = await fetch(base + '/health');
+    expect(res.status).toBe(200);
+    expect((await res.json()) as { status: string }).toEqual({ status: 'ok' });
     await stop();
   });
 

@@ -47,9 +47,10 @@ function writeSummary(deps: EngineDeps, roomId: string): void {
   const ids = participantIds(deps, room);
   const agreed = ids.filter((id) => byParticipant.get(id) === 'agree').length;
   const label = proposal.title ?? truncate(proposal.text, 60);
+  const proposer = deps.store.participants.listByRoom(roomId).find((p) => p.id === proposal.by);
   deps.store.rooms.setSummary(
     roomId,
-    `Proposal v${proposal.version} by ${proposal.by}: "${label}" — agreed ${agreed}/${ids.length}.`,
+    `Proposal v${proposal.version} by ${proposer?.team ?? proposal.by}: "${label}" — agreed ${agreed}/${ids.length}.`,
   );
 }
 

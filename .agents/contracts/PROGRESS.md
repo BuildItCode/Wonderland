@@ -147,6 +147,12 @@ _Created: 2026-06-03_
 - Visual: none
 - Notes: Acts are propose/agree/block/say; consensus derived from the transcript (latest propose + per-participant agree/block); no phases, contracts, signatures, or advance/regress. Room closes resolved on unanimous agreement (auto: hub; agent: facilitator declare) or unsolvable (block/declare, or auto proposal cap). Role contractor→participant. Tool surface 12→10. 60 tests green; live auto "1+1" room closes resolved. Fixes the stalled-room repro (agents had posted prose agreement that the old contract gate ignored).
 
+## 2026-06-07 — Web console redesign + README ✓
+- Milestone: post-collapse UI/docs
+- Files: src/transport/public/index.html (full rewrite); src/engine/auto-facilitate.ts (summary names the team); .claude/launch.json (preview runner); README.md (new); CONNECTING.md (console flow); DECISIONS.md
+- Visual: live at http://localhost:4000
+- Notes: Hash-routed SPA — Landing (animated dot-matrix + logo), Setup 2-step wizard (connect → create) with stepper + slide animation, Hub observer (seat roster, chat transcript, proposal/state, rendered doc). localStorage-persisted room; subtle dot backdrop + glow accents throughout. No new deps, no build step. Added a top-level README. Engine untouched beyond the cosmetic summary tweak — 62 tests green.
+
 <!-- Auto-populated by build and validate phases -->
 
 ---

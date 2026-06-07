@@ -13,7 +13,7 @@ import {
 } from '../domain/index.js';
 import type { EngineDeps } from './deps.js';
 import { requireParticipant, requireRoom } from './guards.js';
-import { procedureText, roleInstructions } from './briefing-text.js';
+import { invitationText, procedureText, roleInstructions } from './briefing-text.js';
 import { runAutoFacilitation } from './auto-facilitate.js';
 
 /** Create a room and mint one role-link per party. */
@@ -97,5 +97,5 @@ function invite(deps: EngineDeps, roomId: string, party: { team: string; role: R
   };
   const token = deps.ids.token();
   deps.store.participants.add(roomId, participant, token);
-  return { token, roomId, role: party.role, team: party.team };
+  return { token, roomId, role: party.role, team: party.team, invite: invitationText(token) };
 }

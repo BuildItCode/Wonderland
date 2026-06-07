@@ -66,6 +66,26 @@ describe('auto-facilitation (no LLM, no facilitator)', () => {
     expect(engine.readDoc(a).doc).toContain('resolved');
   });
 
+  it('lets a participant retract a block by agreeing, then resolves', () => {
+    const { links } = engine.createRoom({
+      task: 'Pick a colour',
+      facilitation: 'auto',
+      parties: [
+        { team: 'A', role: 'participant' },
+        { team: 'B', role: 'participant' },
+      ],
+    });
+    const a = tokenFor(links, 'A');
+    const b = tokenFor(links, 'B');
+    engine.post(a, 'propose', { text: 'blue' });
+    engine.post(a, 'agree', {});
+    engine.post(b, 'block', { reason: 'prefer green' });
+    expect(store.rooms.get('r1')?.status).toBe('open');
+
+    engine.post(b, 'agree', {}); // a later agree supersedes the block
+    expect(store.rooms.get('r1')?.outcome).toBe('resolved');
+  });
+
   it('allows an auto room with no facilitator', () => {
     expect(() =>
       engine.createRoom({

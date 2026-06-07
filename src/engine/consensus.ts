@@ -27,21 +27,29 @@ export function participantIds(deps: EngineDeps, room: Room): ParticipantId[] {
  * Resolve the current proposal and the stance of each participant on it.
  *
  * The proposal is the last `propose` message; a stance is the participant's last
- * `agree`/`block` *after* that proposal. A new proposal therefore resets all stances.
+ * `agree`/`block` *after* that proposal. Putting a proposal forward counts as the
+ * proposer's own agreement (overridable by a later `block`). A new proposal resets
+ * everyone else's stance.
  */
 export function stances(deps: EngineDeps, room: Room): Stances {
   const messages = deps.store.messages.listSince(room.id);
   let proposal: Proposal | null = null;
   let proposalIndex = -1;
   let version = 0;
-  messages.forEach((m, i) => {
+  let index = -1;
+  for (const m of messages) {
+    index += 1;
     if (m.act === 'propose') {
       version += 1;
-      proposalIndex = i;
+      proposalIndex = index;
       proposal = { version, by: m.from, title: m.payload.title, text: m.payload.text };
     }
-  });
+  }
   const byParticipant = new Map<ParticipantId, 'agree' | 'block'>();
+  if (proposal) {
+    // proposing your solution endorses it; a later block from the proposer overrides this
+    byParticipant.set(proposal.by, 'agree');
+  }
   const after = proposalIndex >= 0 ? messages.slice(proposalIndex + 1) : [];
   for (const m of after) {
     if (m.act === 'agree') {

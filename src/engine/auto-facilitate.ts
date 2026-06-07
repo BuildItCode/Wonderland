@@ -27,7 +27,7 @@ export function runAutoFacilitation(deps: EngineDeps, roomId: string): void {
       deps,
       room,
       'system',
-      `Room closed automatically: unsolvable — no agreement after ${ROUND_CAP} proposals.`,
+      `Room closed automatically: unsolvable — no agreement reached after ${room.round} proposals.`,
     );
     return;
   }

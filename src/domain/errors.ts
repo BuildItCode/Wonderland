@@ -16,7 +16,7 @@ export class NotFoundError extends AppError {
   }
 }
 
-/** The action conflicts with current state (e.g. wrong phase, already closed). */
+/** The action conflicts with current state (e.g. the room is already closed). */
 export class ConflictError extends AppError {
   constructor(message: string, options?: { cause?: unknown }) {
     super(message, 'CONFLICT', options);

@@ -99,6 +99,13 @@ describe('declare guards', () => {
     expect(() => engine.declare(tokenFor('platform'), 'resolved')).toThrow(/pending: p3/);
   });
 
+  it("does not count the facilitator's agreement toward the gate", () => {
+    engine.post(tokenFor('A'), 'propose', { text: 'plan' });
+    engine.post(tokenFor('A'), 'agree', {});
+    engine.post(tokenFor('platform'), 'agree', {}); // facilitator agreeing must not substitute for B
+    expect(() => engine.declare(tokenFor('platform'), 'resolved')).toThrow(/pending: p3/);
+  });
+
   it('allows unsolvable to be declared at any time', () => {
     const { doc } = engine.declare(tokenFor('platform'), 'unsolvable');
     expect(doc).toContain('— unsolvable');

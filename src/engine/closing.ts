@@ -8,7 +8,7 @@ import {
 } from '../domain/index.js';
 import type { EngineDeps } from './deps.js';
 import { requireParticipant, requireRoom } from './guards.js';
-import { allAgreed, pendingParticipants } from './consensus.js';
+import { allAgreed, pendingParticipants, stances } from './consensus.js';
 import { buildDoc } from './doc.js';
 
 /** Replace the living room summary (facilitator only). */
@@ -41,10 +41,10 @@ export function declare(deps: EngineDeps, token: string, outcome: Outcome): Decl
     throw new ConflictError('Room is already closed.');
   }
   if (outcome === 'resolved' && !allAgreed(deps, room)) {
-    const pending = pendingParticipants(deps, room);
-    throw new ConflictError(
-      `Cannot resolve: not all participants have agreed (pending: ${pending.join(', ') || 'no proposal yet'}).`,
-    );
+    const detail = stances(deps, room).proposal
+      ? `pending: ${pendingParticipants(deps, room).join(', ')}`
+      : 'no proposal has been put forward yet';
+    throw new ConflictError(`Cannot resolve — ${detail}.`);
   }
   return close(deps, room, outcome);
 }

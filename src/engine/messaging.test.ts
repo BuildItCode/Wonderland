@@ -77,10 +77,10 @@ describe('my_state — stance on the current proposal', () => {
     expect(engine.myState(tokenFor('A')).stance).toBe('agree');
     expect(engine.myState(tokenFor('B')).stance).toBe('block');
 
-    // a fresh proposal clears every stance
+    // a fresh proposal resets everyone else's stance; the proposer endorses their own
     engine.post(tokenFor('B'), 'propose', { text: 'plan v2 with retries' });
     expect(engine.myState(tokenFor('A')).stance).toBe('none');
-    expect(engine.myState(tokenFor('B')).stance).toBe('none');
+    expect(engine.myState(tokenFor('B')).stance).toBe('agree');
   });
 });
 

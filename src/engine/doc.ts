@@ -11,7 +11,7 @@ function buildSuccessDoc(deps: EngineDeps, room: Room): string {
   const lines: string[] = [`# ${room.task} — resolved`, '', '## Summary'];
   lines.push(room.summary.trim() || '_No summary recorded._');
 
-  const { proposal } = stances(deps, room);
+  const { proposal, byParticipant } = stances(deps, room);
   lines.push('', '## Agreed Solution');
   if (proposal) {
     if (proposal.title) {
@@ -24,7 +24,9 @@ function buildSuccessDoc(deps: EngineDeps, room: Room): string {
 
   lines.push('', '## Sign-off');
   for (const id of participantIds(deps, room)) {
-    lines.push(`- **${teamOf(deps, room, id)}**: agreed`);
+    const stance = byParticipant.get(id);
+    const label = stance === 'agree' ? 'agreed' : stance === 'block' ? 'blocked' : 'no response';
+    lines.push(`- **${teamOf(deps, room, id)}**: ${label}`);
   }
   return lines.join('\n');
 }

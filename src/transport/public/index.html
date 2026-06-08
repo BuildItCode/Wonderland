@@ -124,6 +124,7 @@
     .pill.resolved { color:var(--accent); border-color:#1f5440; background:#10261d; box-shadow:0 0 14px rgba(var(--accent-rgb),.22); }
     .pill.unsolvable { color:var(--error); border-color:#5e2733; background:#2a131a; }
     .pill.mode { color:var(--violet); border-color:#3c3357; background:#181528; }
+    .pill.discussion { color:var(--gold); border-color:#5c4d18; background:#221c08; }
 
     .grid { display:grid; grid-template-columns:280px 1fr 340px; gap:1.1rem; align-items:start; }
     @media (max-width:1200px){ .grid { grid-template-columns:260px 1fr; } .grid .state { grid-column:1 / -1; } }
@@ -265,6 +266,11 @@
             <p class="lead">A <strong>room</strong> is one task plus the <strong>seats</strong> you invite (each seat is one agent/model) and who chairs it. <strong>auto</strong> — the hub closes the room itself the moment every seat agrees (no facilitator). <strong>agent</strong> — add one neutral <em>facilitator</em> seat that declares the outcome.</p>
             <label>Task</label>
             <textarea id="task" style="min-height:60px">Checkout needs to charge cards and receive payment events</textarea>
+            <label>Room type</label>
+            <select id="kind">
+              <option value="decision">Decision — closes when everyone agrees</option>
+              <option value="discussion">Open discussion — stays open until someone closes it</option>
+            </select>
             <label>Facilitation</label>
             <select id="facilitation">
               <option value="auto">auto — the hub chairs it (no facilitator needed)</option>
@@ -301,9 +307,11 @@
             <div class="rid" id="bRid"></div>
           </div>
           <span class="pill" id="bStatus">—</span>
+          <span class="pill" id="bKind">—</span>
           <span class="pill mode" id="bMode">—</span>
           <span class="pill" id="bRound">round 0</span>
           <span class="pill" id="bOutcome" hidden></span>
+          <button class="btn-ghost" id="closeRoom" hidden>Close room</button>
           <button class="btn-ghost" id="newRoom">← new room</button>
         </div>
         <div class="grid">
@@ -423,12 +431,13 @@
     }
     async function createRoom() {
       const task = $('#task').value.trim();
+      const kind = $('#kind').value;
       const facilitation = $('#facilitation').value;
       const parties = [...document.querySelectorAll('#seats .seatinput')]
         .map((r) => ({ team: r.querySelector('.steam').value.trim(), role: r.querySelector('.srole').value }))
         .filter((p) => p.team);
       try {
-        const r = await api('rooms', { task, facilitation, parties });
+        const r = await api('rooms', { task, kind, facilitation, parties });
         clearRoom();
         r.links.forEach((l) => { TOKENS[l.team] = l.token; INVITES[l.team] = l.invite; });
         ANYTOKEN = r.links[0] ? r.links[0].token : null;
@@ -451,10 +460,12 @@
       $('#bTask').textContent = snap.task;
       $('#bRid').textContent = snap.roomId;
       const st = $('#bStatus'); st.textContent = snap.status; st.className = 'pill ' + snap.status;
+      const k = $('#bKind'); k.textContent = snap.kind; k.className = 'pill' + (snap.kind === 'discussion' ? ' discussion' : '');
       $('#bMode').textContent = snap.facilitation;
       $('#bRound').textContent = 'round ' + snap.round;
       const oc = $('#bOutcome');
       if (snap.outcome) { oc.hidden = false; oc.textContent = snap.outcome; oc.className = 'pill ' + snap.outcome; } else { oc.hidden = true; }
+      $('#closeRoom').hidden = !(snap.kind === 'discussion' && snap.status === 'open');
     }
     function renderSeats(snap) {
       $('#seatCount').textContent = snap.participants.length;
@@ -638,6 +649,10 @@
     $('#createBtn').onclick = createRoom;
     document.querySelectorAll('.stp').forEach((s) => { s.onclick = () => { location.hash = s.dataset.step === '2' ? '#/create' : '#/setup'; }; });
     $('#newRoom').onclick = () => { clearRoom(); location.hash = '#/setup'; };
+    $('#closeRoom').onclick = async () => {
+      try { await api('declare', { token: ANYTOKEN, outcome: 'resolved' }); toast('room closed'); await poll(); }
+      catch (e) { toast(e.message, true); }
+    };
     seatInputRow('Claude', 'participant');
     seatInputRow('ChatGPT', 'participant');
 

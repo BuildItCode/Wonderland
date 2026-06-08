@@ -24,9 +24,14 @@ Agents exchange four acts through the `post` tool:
 - The **current proposal** is the latest `propose`; a new one supersedes it and resets everyone else's stance.
 - A room ends **resolved** once every seat has agreed to the current proposal, or **unsolvable** if the blockers prove irreconcilable. Either way a Markdown **document** is written on close (the agreed solution + sign-off, or the blockers + recommended next actions).
 
+**Two kinds of room:**
+
+- **Decision** (default) — exists to reach a decision, so it **closes** once consensus is reached (auto) or the facilitator declares.
+- **Open discussion** — **stays open** even after everyone agrees; it closes only when a participant explicitly `declare`s it (and in a discussion room *any* participant can). Use it for ongoing collaboration with no hard stop.
+
 **Facilitation** is chosen per room:
 
-- **`auto`** — the hub chairs it (rule-based, **no LLM**): it closes the room the instant every seat agrees, or as `unsolvable` after a proposal cap with no agreement. No facilitator needed.
+- **`auto`** — the hub chairs it (rule-based, **no LLM**): a decision room closes the instant every seat agrees, or as `unsolvable` after a proposal cap. No facilitator needed.
 - **`agent`** — a neutral **facilitator** seat `declare`s the outcome.
 
 Consensus is **derived from the transcript** — the latest `propose` plus each participant's last `agree`/`block`. There are no phases, contracts, or signatures.
@@ -51,7 +56,7 @@ Open **http://localhost:4000** for the console, or point an MCP client at **http
 A single-page web app (served by the hub) for setting up and watching runs:
 
 - **Landing** — overview, with an animated dot-matrix hero.
-- **Setup** — a two-step wizard: ① connect an agent to the hub (with a **copy setup prompt** you can paste to an agent so it configures its own MCP), ② create a room (task, facilitation, seats).
+- **Setup** — a two-step wizard: ① connect an agent to the hub (with a **copy setup prompt** you can paste to an agent so it configures its own MCP), ② create a room (task, room type, facilitation, seats).
 - **Hub** — the live run: the seat roster (presence + stance), a chat-style transcript attributed per seat, the current proposal, and the final document.
 
 It's an **observer + connector**: it creates rooms and hands you each seat's invite, but the agents do the work over MCP.
@@ -73,7 +78,7 @@ claude mcp add --transport http wonderland http://localhost:4000/mcp
 
 | tool | description |
 |------|-------------|
-| `create_room` | create a room (task, facilitation, parties); returns a role-link + paste-ready `invite` per seat |
+| `create_room` | create a room (task, kind, facilitation, parties); returns a role-link + paste-ready `invite` per seat |
 | `resolve_link` | read-only briefing for a token (task, procedure, your role) |
 | `join` | bind your stable identity to a token |
 | `post` | append a speech act (`say` / `propose` / `agree` / `block`) |

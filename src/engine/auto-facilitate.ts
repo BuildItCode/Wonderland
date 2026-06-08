@@ -7,29 +7,32 @@ import { close } from './closing.js';
 const ROUND_CAP = 8;
 
 /**
- * Rule-based chair (no LLM). Invoked after joins/posts. In an auto room it closes the
- * room the instant every participant agrees (resolved) or the proposal cap is exceeded
- * (unsolvable), and otherwise keeps a state-digest summary. Agent rooms are left alone.
+ * Rule-based chair (no LLM). Invoked after joins/posts. In an auto **decision** room it
+ * closes the room the instant every participant agrees (resolved) or the proposal cap is
+ * exceeded (unsolvable). **Discussion** rooms never auto-close — they only get a refreshed
+ * state-digest summary and stay open until a participant declares. Agent rooms are left alone.
  */
 export function runAutoFacilitation(deps: EngineDeps, roomId: string): void {
   const room = deps.store.rooms.get(roomId);
   if (!room || room.facilitation !== 'auto' || room.status === 'closed') {
     return;
   }
-  if (allAgreed(deps, room)) {
-    close(deps, room, 'resolved');
-    appendNote(deps, room, 'system', 'Room closed automatically: resolved — all participants agreed.');
-    return;
-  }
-  if (room.round > ROUND_CAP) {
-    close(deps, room, 'unsolvable');
-    appendNote(
-      deps,
-      room,
-      'system',
-      `Room closed automatically: unsolvable — no agreement reached after ${room.round} proposals.`,
-    );
-    return;
+  if (room.kind === 'decision') {
+    if (allAgreed(deps, room)) {
+      close(deps, room, 'resolved');
+      appendNote(deps, room, 'system', 'Room closed automatically: resolved — all participants agreed.');
+      return;
+    }
+    if (room.round > ROUND_CAP) {
+      close(deps, room, 'unsolvable');
+      appendNote(
+        deps,
+        room,
+        'system',
+        `Room closed automatically: unsolvable — no agreement reached after ${room.round} proposals.`,
+      );
+      return;
+    }
   }
   writeSummary(deps, roomId);
 }

@@ -7,6 +7,7 @@ import {
   outcomeSchema,
   presenceSchema,
   roleSchema,
+  roomKindSchema,
   speechActTypeSchema,
   type HubService,
 } from '../domain/index.js';
@@ -41,10 +42,13 @@ export function registerTools(server: McpServer, service: HubService): void {
         'Create a room for a task and get a shareable invite per seat. Use this when a user asks you ' +
         'to set up a multi-agent collaboration: pass the task and one party per seat (team/name + role). ' +
         'Returns role-links, each with a ready-to-paste `invite` — present every invite to the user so they ' +
-        'can forward it to that participant. facilitation "auto" (default) = the hub chairs it, no facilitator ' +
-        'party needed; "agent" = a facilitator agent drives it (include exactly one facilitator party).',
+        'can forward it to that participant. kind "decision" (default) = the room closes once everyone agrees; ' +
+        '"discussion" = an open room that stays open through agreement until a participant closes it. ' +
+        'facilitation "auto" (default) = the hub chairs it, no facilitator party needed; ' +
+        '"agent" = a facilitator agent drives it (include exactly one facilitator party).',
       inputSchema: {
         task: z.string().min(1),
+        kind: roomKindSchema.default('decision'),
         facilitation: facilitationSchema.default('auto'),
         parties: z.array(z.object({ team: z.string().min(1), role: roleSchema })).min(1),
       },
@@ -135,8 +139,9 @@ export function registerTools(server: McpServer, service: HubService): void {
     'declare',
     {
       description:
-        'Close the room with an outcome and finalize the doc (facilitator only). ' +
-        '"resolved" requires every participant to have agreed; "unsolvable" may be declared anytime.',
+        'Close the room with an outcome and finalize the doc. In a decision room: facilitator only, and ' +
+        '"resolved" requires every participant to have agreed ("unsolvable" anytime). In a discussion room: ' +
+        'any participant may close it at any time (it does not close on its own).',
       inputSchema: { token: z.string().min(1), outcome: outcomeSchema },
     },
     (args) => run(() => service.declare(args.token, args.outcome)),

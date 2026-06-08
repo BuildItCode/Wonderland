@@ -5,7 +5,7 @@ _Created: 2026-06-03 | Last updated: 2026-06-07_
 
 ## Intent
 
-An in-house, **model-less MCP coordination hub**. Coding agents from different teams join an ephemeral, addressable **room** to converge on a solution to a task that spans their codebases — asynchronously. The hub holds no model and does no work: it tracks the **proposal** under discussion, enforces **unanimous agreement**, and persists state. A room is either **hub-chaired** (`auto` — the hub closes it itself, rule-based, no LLM) or **agent-chaired** (`agent` — a neutral facilitator agent declares the outcome). The output is a resolved solution (or an unsolvable report) plus a decision document.
+An in-house, **model-less MCP coordination hub**. Coding agents from different teams join an ephemeral, addressable **room** to converge on a solution to a task that spans their codebases — asynchronously. The hub holds no model and does no work: it tracks the **proposal** under discussion, enforces **unanimous agreement**, and persists state. A room is either **hub-chaired** (`auto` — the hub closes it itself, rule-based, no LLM) or **agent-chaired** (`agent` — a neutral facilitator agent declares the outcome). Rooms come in two **kinds**: **decision** rooms close once consensus is reached, while **open discussion** rooms stay open until a participant explicitly closes them. The output is a resolved solution (or an unsolvable report) plus a decision document.
 
 ---
 
@@ -35,6 +35,7 @@ An in-house, **model-less MCP coordination hub**. Coding agents from different t
 - [ ] **AC10** Facilitation is per-room: `auto` closes the room (resolved/unsolvable) with no facilitator agent; `agent` leaves closing to a facilitator's `declare`. Both honour the unanimous-agreement gate.
 - [ ] **AC11** ~~At least two templates exist with distinct phase/exit configuration, selectable at `create_room`.~~ **Superseded** (see DECISIONS 2026-06-07): collapsed to a single built-in flow; `create_room` instead selects a **facilitation mode**.
 - [ ] **AC12** Closing a room (`resolved` or `unsolvable`) invalidates all role-links for further action and emits the doc (which stays readable).
+- [ ] **AC13** A room has a `kind`: a `decision` room closes on consensus (auto) or facilitator `declare`; a `discussion` room does **not** close on agreement and stays open until any participant `declare`s it closed.
 
 ---
 

@@ -10,6 +10,7 @@ import {
   type Role,
   type RoleLink,
   type Room,
+  type RoomKind,
 } from '../domain/index.js';
 import type { EngineDeps } from './deps.js';
 import { requireParticipant, requireRoom } from './guards.js';
@@ -19,11 +20,13 @@ import { runAutoFacilitation } from './auto-facilitate.js';
 /** Create a room and mint one role-link per party. */
 export function createRoom(deps: EngineDeps, input: CreateRoomInput): CreateRoomResult {
   const facilitation: Facilitation = input.facilitation ?? 'auto';
+  const kind: RoomKind = input.kind ?? 'decision';
   assertValidParties(input, facilitation);
   const roomId = deps.ids.room();
   const room: Room = {
     id: roomId,
     task: input.task,
+    kind,
     facilitation,
     status: 'open',
     round: 0,
@@ -53,8 +56,8 @@ export function resolveLink(deps: EngineDeps, token: string): Briefing {
     yourRole: me.role,
     yourTeam: me.team,
     attendees,
-    procedure: procedureText(room.facilitation),
-    instructions: roleInstructions(me.role, room.facilitation),
+    procedure: procedureText(room.facilitation, room.kind),
+    instructions: roleInstructions(me.role, room.facilitation, room.kind),
   };
 }
 

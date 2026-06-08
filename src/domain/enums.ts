@@ -36,6 +36,16 @@ export const facilitationSchema = z.enum(['auto', 'agent']);
 /** Union of the valid facilitation modes. */
 export type Facilitation = z.infer<typeof facilitationSchema>;
 
+/**
+ * What a room is for.
+ * - `decision` — closes once consensus is reached (auto) or the facilitator declares.
+ * - `discussion` — stays open even after everyone agrees; closes only when a participant declares.
+ */
+export const roomKindSchema = z.enum(['decision', 'discussion']);
+
+/** Union of the valid room kinds. */
+export type RoomKind = z.infer<typeof roomKindSchema>;
+
 /** Presence signal a participant broadcasts so others can orchestrate async work. */
 export const presenceSchema = z.enum(['invited', 'joined', 'thinking', 'blocked', 'done']);
 

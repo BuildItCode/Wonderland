@@ -6,6 +6,7 @@ import type { Room, Store } from '../domain/index.js';
 const ROOM: Room = {
   id: 'r1',
   task: 'integrate payments',
+  kind: 'decision',
   facilitation: 'agent',
   status: 'open',
   round: 0,

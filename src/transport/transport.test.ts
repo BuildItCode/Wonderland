@@ -29,6 +29,7 @@ const stub: HubService = {
   roomSnapshot: () => ({
     roomId: 'r1',
     task: 't',
+    kind: 'decision',
     facilitation: 'auto',
     status: 'open',
     round: 0,

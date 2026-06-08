@@ -5,6 +5,7 @@ import {
   outcomeSchema,
   presenceSchema,
   roleSchema,
+  roomKindSchema,
   roomStatusSchema,
 } from './enums.js';
 import { messageSchema } from './speech-acts.js';
@@ -81,6 +82,7 @@ export const roomSchema = z
   .object({
     id: idSchema,
     task: z.string().min(1),
+    kind: roomKindSchema,
     facilitation: facilitationSchema,
     status: roomStatusSchema,
     round: z.number().int().nonnegative(),

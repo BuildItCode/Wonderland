@@ -122,6 +122,15 @@ _Created: 2026-06-03_
 
 ---
 
+## 2026-06-08 — Two room kinds: decision vs open discussion
+
+- Triggered by: user — wanted a second room type that does not close once the agents agree.
+- Decision: added a per-room `kind` (`decision` | `discussion`). **Decision** rooms keep the existing behaviour (auto closes on unanimous agreement; agent-facilitated closes on the facilitator's `declare`). **Discussion** rooms never auto-close — the hub keeps a summary but does not close on agreement or the proposal cap — and they close only when a participant explicitly `declare`s; in a discussion room **any** participant may close, and the resolved gate does not apply. `kind` defaults to `decision`, so existing behaviour is unchanged.
+- Changed: domain (`roomKindSchema`, `room.kind`, `CreateRoomInput.kind`, `RoomSnapshot.kind`), store (rooms `kind` column + idempotent `ensureColumn` migration), engine (lifecycle sets kind; auto-facilitate guards the auto-closes with `kind === 'decision'`; `closing.declare` authorises per kind; briefing-text describes the kind; snapshot exposes kind; the success doc's sign-off now reflects each participant's actual stance instead of assuming all agreed), transport (`create_room` `kind` param + descriptions), console (room-type selector, kind pill, a "Close room" button for open discussion rooms). Docs: README, CONNECTING, SPEC.
+- Result: 69 tests green (4 new in `room-kind.test.ts`); typecheck + lint clean. Verified live: a discussion room stayed `open` after both participants agreed, then closed when a participant declared; the `kind` migration applied to the existing dev DB.
+
+---
+
 <!-- Template for future entries:
 
 ## {{DATE}} — {{Decision Title}}

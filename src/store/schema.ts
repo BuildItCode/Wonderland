@@ -3,6 +3,7 @@ export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS rooms (
   id            TEXT PRIMARY KEY,
   task          TEXT NOT NULL,
+  kind          TEXT NOT NULL DEFAULT 'decision',
   facilitation  TEXT NOT NULL DEFAULT 'auto',
   status        TEXT NOT NULL DEFAULT 'open',
   round         INTEGER NOT NULL DEFAULT 0,

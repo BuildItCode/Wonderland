@@ -1,11 +1,21 @@
 import type { Briefing, MyState, RoleLink } from './room.js';
 import type { Message } from './speech-acts.js';
 import type { LinkToken, MessageId, ParticipantId, RoomId } from './ids.js';
-import type { Facilitation, Outcome, Presence, Role, RoomStatus, SpeechActType } from './enums.js';
+import type {
+  Facilitation,
+  Outcome,
+  Presence,
+  Role,
+  RoomKind,
+  RoomStatus,
+  SpeechActType,
+} from './enums.js';
 
-/** Input to create a room: the task, who drives it, and the parties to invite. */
+/** Input to create a room: the task, what kind, who drives it, and the parties to invite. */
 export interface CreateRoomInput {
   task: string;
+  /** `decision` (default) closes on consensus; `discussion` stays open until a participant closes it. */
+  kind?: RoomKind;
   /** Who chairs the room. `auto` (default) = the hub; `agent` = a facilitator agent. */
   facilitation?: Facilitation;
   parties: { team: string; role: Role }[];
@@ -44,6 +54,7 @@ export interface ProposalView {
 export interface RoomSnapshot {
   roomId: RoomId;
   task: string;
+  kind: RoomKind;
   facilitation: Facilitation;
   status: RoomStatus;
   round: number;

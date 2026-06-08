@@ -27,6 +27,7 @@ export function roomSnapshot(deps: EngineDeps, token: string): RoomSnapshot {
   return {
     roomId: room.id,
     task: room.task,
+    kind: room.kind,
     facilitation: room.facilitation,
     status: room.status,
     round: room.round,

@@ -153,6 +153,12 @@ _Created: 2026-06-03_
 - Visual: live at http://localhost:4000
 - Notes: Hash-routed SPA — Landing (animated dot-matrix + logo), Setup 2-step wizard (connect → create) with stepper + slide animation, Hub observer (seat roster, chat transcript, proposal/state, rendered doc). localStorage-persisted room; subtle dot backdrop + glow accents throughout. No new deps, no build step. Added a top-level README. Engine untouched beyond the cosmetic summary tweak — 62 tests green.
 
+## 2026-06-08 — Room kinds: decision + open discussion ✓
+- Milestone: post-collapse feature
+- Files: src/domain/{enums,room,service}.ts; src/store/{schema,db,room-repository}.ts (kind column + migration); src/engine/{lifecycle,auto-facilitate,closing,doc,briefing-text,snapshot}.ts; src/transport/{tools,public/index.html}; src/store/store.test.ts + src/transport/transport.test.ts + src/engine/room-kind.test.ts (new); README.md, CONNECTING.md, SPEC.md
+- Visual: live at http://localhost:4000
+- Notes: per-room `kind` ('decision' default | 'discussion'). Discussion rooms never auto-close on agreement; any participant closes them via declare (no resolved gate). Success-doc sign-off now reflects real stances. Console gained a room-type selector, kind pill, and a Close-room button. 69 tests green; live-verified (stayed open after all agreed, closed on participant declare).
+
 <!-- Auto-populated by build and validate phases -->
 
 ---

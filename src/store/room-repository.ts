@@ -11,6 +11,7 @@ import {
 interface RoomRow {
   id: string;
   task: string;
+  kind: string;
   facilitation: string;
   status: string;
   round: number;
@@ -26,12 +27,13 @@ export class SqliteRoomRepository implements RoomRepository {
   create(room: Room): void {
     this.db
       .prepare(
-        `INSERT INTO rooms (id, task, facilitation, status, round, summary, outcome, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO rooms (id, task, kind, facilitation, status, round, summary, outcome, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         room.id,
         room.task,
+        room.kind,
         room.facilitation,
         room.status,
         room.round,
@@ -51,6 +53,7 @@ export class SqliteRoomRepository implements RoomRepository {
     return roomSchema.parse({
       id: row.id,
       task: row.task,
+      kind: row.kind,
       facilitation: row.facilitation,
       status: row.status,
       round: row.round,
